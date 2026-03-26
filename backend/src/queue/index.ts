@@ -1,14 +1,4 @@
-import Queue from 'bull';
-import { RedisOptions } from 'ioredis';
-
-// Redis configuration
-const redisOptions: RedisOptions = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-};
+import config from '../config/env';
 
 // Queue names
 export const QUEUE_NAMES = {
@@ -52,50 +42,115 @@ export interface EmailJobData {
   data: Record<string, any>;
 }
 
-// Create queues
-export const testPublishQueue = new Queue<TestPublishJobData>(QUEUE_NAMES.TEST_PUBLISH, {
-  redis: redisOptions,
-  defaultJobOptions: {
-    removeOnComplete: 10,
-    removeOnFail: 5,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 1000,
+// Redis configuration
+const redisOptions = {
+  host: config.redisHost || 'localhost',
+  port: config.redisPort,
+  password: config.redisPassword,
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
+};
+
+let testPublishQueue: any;
+let testAutoSubmitQueue: any;
+let notificationQueue: any;
+let emailQueue: any;
+
+if (config.isSafeMode) {
+  // Use mock queues when in Safe Mode
+  const { MockQueue } = require('./mockQueue');
+  
+  console.log('[Queue] Using mock queues (Safe Mode)');
+  
+  testPublishQueue = new MockQueue(QUEUE_NAMES.TEST_PUBLISH, {
+    defaultJobOptions: {
+      removeOnComplete: 10,
+      removeOnFail: 5,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 1000,
+      },
     },
-  },
-});
-
-export const testAutoSubmitQueue = new Queue<TestAutoSubmitJobData>(QUEUE_NAMES.TEST_AUTO_SUBMIT, {
-  redis: redisOptions,
-  defaultJobOptions: {
-    removeOnComplete: 10,
-    removeOnFail: 5,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 1000,
+  });
+  
+  testAutoSubmitQueue = new MockQueue(QUEUE_NAMES.TEST_AUTO_SUBMIT, {
+    defaultJobOptions: {
+      removeOnComplete: 10,
+      removeOnFail: 5,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 1000,
+      },
     },
-  },
-});
-
-export const notificationQueue = new Queue<NotificationJobData>(QUEUE_NAMES.NOTIFICATIONS, {
-  redis: redisOptions,
-  defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 10,
-    attempts: 3,
-  },
-});
-
-export const emailQueue = new Queue<EmailJobData>(QUEUE_NAMES.EMAIL, {
-  redis: redisOptions,
-  defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 10,
-    attempts: 3,
-  },
-});
+  });
+  
+  notificationQueue = new MockQueue(QUEUE_NAMES.NOTIFICATIONS, {
+    defaultJobOptions: {
+      removeOnComplete: 100,
+      removeOnFail: 10,
+      attempts: 3,
+    },
+  });
+  
+  emailQueue = new MockQueue(QUEUE_NAMES.EMAIL, {
+    defaultJobOptions: {
+      removeOnComplete: 100,
+      removeOnFail: 10,
+      attempts: 3,
+    },
+  });
+} else {
+  // Use real Bull queues
+  const Queue = require('bull');
+  
+  testPublishQueue = new Queue(QUEUE_NAMES.TEST_PUBLISH, {
+    redis: redisOptions,
+    defaultJobOptions: {
+      removeOnComplete: 10,
+      removeOnFail: 5,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 1000,
+      },
+    },
+  });
+  
+  testAutoSubmitQueue = new Queue(QUEUE_NAMES.TEST_AUTO_SUBMIT, {
+    redis: redisOptions,
+    defaultJobOptions: {
+      removeOnComplete: 10,
+      removeOnFail: 5,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 1000,
+      },
+    },
+  });
+  
+  notificationQueue = new Queue(QUEUE_NAMES.NOTIFICATIONS, {
+    redis: redisOptions,
+    defaultJobOptions: {
+      removeOnComplete: 100,
+      removeOnFail: 10,
+      attempts: 3,
+    },
+  });
+  
+  emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
+    redis: redisOptions,
+    defaultJobOptions: {
+      removeOnComplete: 100,
+      removeOnFail: 10,
+      attempts: 3,
+    },
+  });
+  
+  console.log('[Queue] Connected to Redis');
+}
 
 // Helper to schedule test publish
 export async function scheduleTestPublish(
@@ -163,3 +218,5 @@ export async function closeQueues(): Promise<void> {
     emailQueue.close(),
   ]);
 }
+
+export { testPublishQueue, testAutoSubmitQueue, notificationQueue, emailQueue };

@@ -1,9 +1,11 @@
+// Import config first - this handles environment validation and safe mode detection
+import config from './config/env';
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -20,10 +22,7 @@ import settingsRoutes from './routes/settings.routes';
 import { closeQueues } from './queue';
 import { startAllWorkers, stopAllWorkers } from './queue/workers';
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 4000;
 
 // Trust proxy for Railway deployment
 app.set('trust proxy', 1);
@@ -31,7 +30,7 @@ app.set('trust proxy', 1);
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+  origin: config.frontendUrl,
   credentials: true,
 }));
 app.use(morgan('combined'));
@@ -44,7 +43,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: Date.now(),
-    environment: process.env.NODE_ENV || 'development',
+    environment: config.nodeEnv,
+    safeMode: config.isSafeMode,
   });
 });
 
@@ -63,7 +63,7 @@ app.use('/api/student', studentRoutes);
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ 
-    error: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message 
+    error: config.isProduction ? 'Something went wrong' : err.message 
   });
 });
 
@@ -73,12 +73,15 @@ app.use((req, res) => {
 });
 
 // Start server
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(config.port, () => {
+  console.log(`\n🚀 Server running on port ${config.port}`);
   
-  // Start queue workers if Redis is configured
-  if (process.env.REDIS_HOST) {
+  // Start queue workers if not in safe mode and Redis is configured
+  if (!config.isSafeMode && config.redisHost) {
+    console.log('[Server] Starting queue workers...');
     startAllWorkers();
+  } else if (config.isSafeMode) {
+    console.log('[Server] Queue workers running in mock mode (Safe Mode)');
   } else {
     console.log('[Server] Redis not configured, skipping queue workers');
   }
@@ -94,8 +97,11 @@ async function gracefulShutdown(signal: string) {
   });
   
   // Stop queue workers
-  if (process.env.REDIS_HOST) {
+  if (!config.isSafeMode && config.redisHost) {
     await stopAllWorkers();
+    await closeQueues();
+  } else if (config.isSafeMode) {
+    console.log('[Server] Closing mock queues...');
     await closeQueues();
   }
   
