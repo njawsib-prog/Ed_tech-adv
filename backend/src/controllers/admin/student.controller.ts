@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { supabaseAdmin } from '../../db/supabaseAdmin';
-import csv from 'csv-parser';
-import { Readable } from 'stream';
 
 interface StudentRequest extends Request {
   body: {
@@ -15,6 +13,70 @@ interface StudentRequest extends Request {
     id: string;
     role: string;
   };
+}
+
+/**
+ * Parse CSV with proper handling of quoted fields
+ */
+function parseCSV(content: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const nextChar = content[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote within quotes
+        currentField += '"';
+        i++; // Skip next quote
+      } else {
+        // Toggle quote mode
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // Field separator
+      currentRow.push(currentField.trim());
+      currentField = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      // Row separator
+      if (currentField || currentRow.length > 0) {
+        currentRow.push(currentField.trim());
+      }
+      if (currentRow.length > 0 && currentRow.some(field => field !== '')) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentField = '';
+      // Skip \r if followed by \n
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+    } else {
+      currentField += char;
+    }
+  }
+
+  // Add last row
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField.trim());
+  }
+  if (currentRow.length > 0 && currentRow.some(field => field !== '')) {
+    rows.push(currentRow);
+  }
+
+  return rows;
+}
+
+/**
+ * Validate email format
+ */
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 }
 
 // Get all students with filtering and pagination
@@ -120,50 +182,105 @@ export const bulkUploadStudents = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    const results: { success: any[]; errors: { row: number; error: string }[] } = {
+    const results: { success: any[]; errors: { row: number; error: string; data?: any }[] } = {
       success: [],
       errors: [],
     };
 
     const csvContent = file.buffer.toString('utf-8');
-    const rows = csvContent.split('\n').filter((row) => row.trim());
+    const rows = parseCSV(csvContent);
 
+    // Validate header row (expecting 4 columns: name, email, password, course_id)
+    if (rows.length < 1) {
+      res.status(400).json({ error: 'CSV file is empty' });
+      return;
+    }
+
+    const headerRow = rows[0];
+    if (headerRow.length < 4) {
+      res.status(400).json({ error: 'Invalid CSV format. Expected: name, email, password, course_id' });
+      return;
+    }
+
+    // Prepare students data for batch upsert
+    const validStudents: Array<{
+      name: string;
+      email: string;
+      password_hash: string;
+      course_id: string;
+      is_active: boolean;
+    }> = [];
+    const invalidRows: Array<{ rowNumber: number; error: string; data: string[] }> = [];
+
+    // Process data rows (skip header)
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      const [name, email, password, course_id] = row.split(',').map((field) => field.trim().replace(/^"|"$/g, ''));
+      const [name, email, password, course_id] = row;
 
+      // Validate required fields
       if (!name || !email || !password || !course_id) {
-        results.errors.push({ row: i + 1, error: 'Missing required fields' });
+        invalidRows.push({ rowNumber: i + 1, error: 'Missing required fields', data: row });
         continue;
       }
 
-      try {
-        const passwordHash = await bcrypt.hash(password, 12);
+      // Validate email format
+      if (!isValidEmail(email)) {
+        invalidRows.push({ rowNumber: i + 1, error: 'Invalid email format', data: row });
+        continue;
+      }
+
+      // Validate password length
+      if (password.length < 6) {
+        invalidRows.push({ rowNumber: i + 1, error: 'Password must be at least 6 characters', data: row });
+        continue;
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 12);
+
+      validStudents.push({
+        name,
+        email,
+        password_hash: passwordHash,
+        course_id,
+        is_active: true,
+      });
+    }
+
+    // Batch upsert all valid students
+    if (validStudents.length > 0) {
+      // Process in batches of 100 to avoid hitting size limits
+      const batchSize = 100;
+      for (let i = 0; i < validStudents.length; i += batchSize) {
+        const batch = validStudents.slice(i, i + batchSize);
 
         const { data, error } = await supabaseAdmin
           .from('students')
-          .upsert(
-            {
-              name,
-              email,
-              password_hash: passwordHash,
-              course_id,
-              is_active: true,
-            },
-            { onConflict: 'email' }
-          )
-          .select('id, name, email')
-          .single();
+          .upsert(batch, { onConflict: 'email' })
+          .select('id, name, email');
 
         if (error) {
-          results.errors.push({ row: i + 1, error: error.message });
+          console.error(`[BulkUpload] Batch ${i / batchSize + 1} failed:`, error.message);
+          // Mark all rows in this batch as errors
+          batch.forEach((_, idx) => {
+            invalidRows.push({
+              rowNumber: i + idx + 2, // +2 for header and 0-based index
+              error: `Batch upsert failed: ${error.message}`,
+              data: [],
+            });
+          });
         } else {
-          results.success.push(data);
+          results.success.push(...(data || []));
         }
-      } catch (err: any) {
-        results.errors.push({ row: i + 1, error: err.message || 'Unknown error' });
       }
     }
+
+    // Add invalid row errors to results
+    invalidRows.forEach(({ rowNumber, error, data }) => {
+      results.errors.push({ row: rowNumber, error, data });
+    });
+
+    console.log(`[BulkUpload] Completed: ${results.success.length} successful, ${results.errors.length} errors`);
 
     res.json(results);
   } catch (error) {

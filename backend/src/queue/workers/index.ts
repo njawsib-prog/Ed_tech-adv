@@ -2,12 +2,13 @@ import { startTestPublishWorker } from './testPublish.worker';
 import { startTestAutoSubmitWorker } from './testAutoSubmit.worker';
 import { startNotificationWorker } from './notification.worker';
 import { startEmailWorker } from './email.worker';
+import { testPublishQueue, testAutoSubmitQueue, notificationQueue, emailQueue } from '../index';
 
 export interface Workers {
-  testPublish: ReturnType<typeof startTestPublishWorker>;
-  testAutoSubmit: ReturnType<typeof startTestAutoSubmitWorker>;
-  notification: ReturnType<typeof startNotificationWorker>;
-  email: ReturnType<typeof startEmailWorker>;
+  testPublish: typeof testPublishQueue;
+  testAutoSubmit: typeof testAutoSubmitQueue;
+  notification: typeof notificationQueue;
+  email: typeof emailQueue;
 }
 
 let workers: Workers | null = null;
@@ -43,6 +44,7 @@ export async function stopAllWorkers(): Promise<void> {
 
   console.log('[Workers] Stopping all queue workers...');
 
+  // Close all queues which will also stop their workers
   await Promise.all([
     workers.testPublish.close(),
     workers.testAutoSubmit.close(),
