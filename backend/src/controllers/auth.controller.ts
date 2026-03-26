@@ -3,8 +3,17 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { supabaseAdmin } from '../db/supabaseAdmin';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRY = '7d';
+
+// Validate JWT_SECRET
+if (!JWT_SECRET && process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production');
+  } else {
+    console.warn('[Auth] JWT_SECRET not set - using development mode only');
+  }
+}
 
 interface LoginRequest extends Request {
   body: {
@@ -53,7 +62,7 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
     // Generate JWT
     const token = jwt.sign(
       { id: admin.id, email: admin.email, role: 'admin' },
-      JWT_SECRET,
+      JWT_SECRET || 'dev-secret-do-not-use-in-production',
       { expiresIn: JWT_EXPIRY }
     );
 
@@ -120,7 +129,7 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
     // Generate JWT
     const token = jwt.sign(
       { id: student.id, email: student.email, role: 'student' },
-      JWT_SECRET,
+      JWT_SECRET || 'dev-secret-do-not-use-in-production',
       { expiresIn: JWT_EXPIRY }
     );
 
