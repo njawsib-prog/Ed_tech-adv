@@ -1,0 +1,165 @@
+import Queue from 'bull';
+import { RedisOptions } from 'ioredis';
+
+// Redis configuration
+const redisOptions: RedisOptions = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
+};
+
+// Queue names
+export const QUEUE_NAMES = {
+  TEST_PUBLISH: 'test-publish',
+  TEST_AUTO_SUBMIT: 'test-auto-submit',
+  NOTIFICATIONS: 'notifications',
+  EMAIL: 'email',
+} as const;
+
+// Test Publish Job Data
+export interface TestPublishJobData {
+  testId: string;
+  instituteId: string;
+  scheduledAt: string;
+}
+
+// Test Auto Submit Job Data
+export interface TestAutoSubmitJobData {
+  testId: string;
+  testAttemptId: string;
+  studentId: string;
+  instituteId: string;
+  endsAt: string;
+}
+
+// Notification Job Data
+export interface NotificationJobData {
+  type: 'broadcast' | 'individual';
+  instituteId: string;
+  title: string;
+  message: string;
+  recipientIds?: string[];
+  metadata?: Record<string, any>;
+}
+
+// Email Job Data
+export interface EmailJobData {
+  to: string;
+  subject: string;
+  template: string;
+  data: Record<string, any>;
+}
+
+// Create queues
+export const testPublishQueue = new Queue<TestPublishJobData>(QUEUE_NAMES.TEST_PUBLISH, {
+  redis: redisOptions,
+  defaultJobOptions: {
+    removeOnComplete: 10,
+    removeOnFail: 5,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 1000,
+    },
+  },
+});
+
+export const testAutoSubmitQueue = new Queue<TestAutoSubmitJobData>(QUEUE_NAMES.TEST_AUTO_SUBMIT, {
+  redis: redisOptions,
+  defaultJobOptions: {
+    removeOnComplete: 10,
+    removeOnFail: 5,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 1000,
+    },
+  },
+});
+
+export const notificationQueue = new Queue<NotificationJobData>(QUEUE_NAMES.NOTIFICATIONS, {
+  redis: redisOptions,
+  defaultJobOptions: {
+    removeOnComplete: 100,
+    removeOnFail: 10,
+    attempts: 3,
+  },
+});
+
+export const emailQueue = new Queue<EmailJobData>(QUEUE_NAMES.EMAIL, {
+  redis: redisOptions,
+  defaultJobOptions: {
+    removeOnComplete: 100,
+    removeOnFail: 10,
+    attempts: 3,
+  },
+});
+
+// Helper to schedule test publish
+export async function scheduleTestPublish(
+  testId: string,
+  instituteId: string,
+  scheduledAt: Date
+): Promise<void> {
+  const delay = scheduledAt.getTime() - Date.now();
+  
+  if (delay > 0) {
+    await testPublishQueue.add(
+      'publish-test',
+      {
+        testId,
+        instituteId,
+        scheduledAt: scheduledAt.toISOString(),
+      },
+      {
+        delay,
+        jobId: `publish-${testId}`,
+      }
+    );
+  }
+}
+
+// Helper to schedule test auto-submit
+export async function scheduleTestAutoSubmit(
+  testId: string,
+  testAttemptId: string,
+  studentId: string,
+  instituteId: string,
+  endsAt: Date
+): Promise<void> {
+  const delay = endsAt.getTime() - Date.now();
+  
+  if (delay > 0) {
+    await testAutoSubmitQueue.add(
+      'auto-submit',
+      {
+        testId,
+        testAttemptId,
+        studentId,
+        instituteId,
+        endsAt: endsAt.toISOString(),
+      },
+      {
+        delay,
+        jobId: `autosubmit-${testAttemptId}`,
+      }
+    );
+  }
+}
+
+// Helper to cancel scheduled auto-submit
+export async function cancelTestAutoSubmit(testAttemptId: string): Promise<void> {
+  await testAutoSubmitQueue.removeJobs(`autosubmit-${testAttemptId}`);
+}
+
+// Graceful shutdown
+export async function closeQueues(): Promise<void> {
+  await Promise.all([
+    testPublishQueue.close(),
+    testAutoSubmitQueue.close(),
+    notificationQueue.close(),
+    emailQueue.close(),
+  ]);
+}

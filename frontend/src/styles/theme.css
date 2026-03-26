@@ -1,0 +1,49 @@
+:root {
+  /* Primary Colors */
+  --color-primary: #2E86C1;
+  --color-primary-dark: #21618C;
+  --color-primary-light: #AED6F1;
+  
+  /* Secondary Colors */
+  --color-secondary: #1A7A4A;
+  
+  /* Sidebar Colors */
+  --color-sidebar-bg: #1E3A5F;
+  --color-sidebar-text: #FFFFFF;
+  
+  /* Border Radius */
+  --radius-base: 8px;
+  
+  /* Fonts */
+  --font-primary: 'Inter', sans-serif;
+  --font-heading: 'Poppins', sans-serif;
+}
+
+/* Utility classes for theme colors */
+.bg-primary {
+  background-color: var(--color-primary);
+}
+
+.bg-primary-dark {
+  background-color: var(--color-primary-dark);
+}
+
+.bg-primary-light {
+  background-color: var(--color-primary-light);
+}
+
+.bg-secondary {
+  background-color: var(--color-secondary);
+}
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+.text-primary-dark {
+  color: var(--color-primary-dark);
+}
+
+.border-primary {
+  border-color: var(--color-primary);
+}

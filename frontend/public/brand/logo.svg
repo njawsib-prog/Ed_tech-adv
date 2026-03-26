@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="200" height="50">
+  <rect x="0" y="5" width="40" height="40" rx="8" fill="#2E86C1"/>
+  <text x="50" y="35" font-family="Poppins, sans-serif" font-size="24" font-weight="600" fill="#1E3A5F">EdTech</text>
+  <path d="M12 15 L28 15 L28 35 L12 35 Z M16 20 L24 20 M16 25 L24 25 M16 30 L24 30" stroke="white" stroke-width="2" fill="none"/>
+</svg>

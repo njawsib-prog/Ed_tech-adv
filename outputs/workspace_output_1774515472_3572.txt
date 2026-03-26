@@ -1,0 +1,27 @@
+import { Router } from 'express';
+import { getStudentDashboard } from '../controllers/student/dashboard.controller';
+import {
+  getStudentTests,
+  getTestDetails,
+  startTest,
+  submitTest,
+} from '../controllers/student/test.controller';
+import { authMiddleware } from '../middleware/authMiddleware';
+import { requireRole } from '../middleware/roleMiddleware';
+
+const router = Router();
+
+// All routes require authentication and student role
+router.use(authMiddleware);
+router.use(requireRole('student'));
+
+// Dashboard
+router.get('/dashboard', getStudentDashboard);
+
+// Tests
+router.get('/tests', getStudentTests);
+router.get('/tests/:id', getTestDetails);
+router.post('/tests/:id/start', startTest);
+router.post('/tests/:id/submit', submitTest);
+
+export default router;

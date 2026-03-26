@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #2E86C1;
+  --color-primary-dark: #21618C;
+  --color-primary-light: #AED6F1;
+  --color-secondary: #1A7A4A;
+  --color-sidebar-bg: #1E3A5F;
+  --color-sidebar-text: #FFFFFF;
+  --radius-base: 8px;
+  --font-primary: 'Inter', sans-serif;
+  --font-heading: 'Poppins', sans-serif;
+}
+
+body {
+  font-family: var(--font-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
