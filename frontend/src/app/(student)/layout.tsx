@@ -58,11 +58,13 @@ export default function StudentRootLayout({ children }: { children: React.ReactN
   const title = getPageTitle(pathname);
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <Sidebar role="student" isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Navbar title={title} onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto">{children}</main>
+    <div className="overflow-x-auto">
+      <div className="min-h-screen flex bg-gray-50 min-w-[1024px]">
+        <Sidebar role="student" isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <Navbar title={title} onMenuClick={() => setSidebarOpen(true)} />
+          <main className="flex-1 overflow-auto">{children}</main>
+        </div>
       </div>
     </div>
   );

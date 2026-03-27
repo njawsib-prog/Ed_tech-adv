@@ -170,10 +170,10 @@ export default function TakeTestPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6">
         {/* Question Navigator */}
-        <aside className="w-20 md:w-32 shrink-0">
+        <aside className="w-32 shrink-0">
           <div className="bg-white rounded-base shadow p-3 sticky top-24">
             <p className="text-sm font-medium text-gray-700 mb-2 text-center">Questions</p>
-            <div className="grid grid-cols-4 md:grid-cols-5 gap-1">
+            <div className="grid grid-cols-5 gap-1">
               {questions.map((q, index) => {
                 const isAnswered = answers[q.id];
                 const isMarked = markedForReview.has(q.id);

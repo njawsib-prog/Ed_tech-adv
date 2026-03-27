@@ -56,11 +56,11 @@ export default function StudentDashboard() {
   return (
     <PageWrapper title={`${getGreeting()}!`}>
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-4 gap-4 mb-6">
           <Card>
             <div className="text-center p-4">
               <p className="text-student-muted mb-1">Total Tests</p>
-              <p className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {data?.stats.totalTests || 0}
               </p>
             </div>
@@ -68,7 +68,7 @@ export default function StudentDashboard() {
           <Card>
             <div className="text-center p-4">
               <p className="text-student-muted mb-1">Avg Score</p>
-              <p className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {data?.stats.avgScore || 0}%
               </p>
             </div>
@@ -76,7 +76,7 @@ export default function StudentDashboard() {
           <Card>
             <div className="text-center p-4">
               <p className="text-student-muted mb-1">Best Score</p>
-              <p className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {data?.stats.bestScore || 0}%
               </p>
             </div>
@@ -84,7 +84,7 @@ export default function StudentDashboard() {
           <Card>
             <div className="text-center p-4">
               <p className="text-student-muted mb-1">Streak</p>
-              <p className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {data?.stats.streak || 0} 🔥
               </p>
             </div>
@@ -113,7 +113,7 @@ export default function StudentDashboard() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-2 gap-5">
           {/* Upcoming Tests */}
           <Card title="Upcoming Tests">
             {data?.upcomingTests && data.upcomingTests.length > 0 ? (

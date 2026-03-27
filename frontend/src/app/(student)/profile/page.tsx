@@ -192,8 +192,8 @@ export default function ProfilePage() {
       <div className="space-y-6">
         {/* Profile Header */}
         <Card>
-          <div className="p-4 md:p-6 flex items-center gap-4 md:gap-6">
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+          <div className="p-6 flex items-center gap-6">
+            <div className="w-20 h-20 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
               {profile.name?.charAt(0).toUpperCase() || 'S'}
             </div>
             <div className="flex-1 min-w-0">
@@ -211,7 +211,7 @@ export default function ProfilePage() {
 
         {/* Tabs */}
         <div className="border-b border-gray-200">
-          <nav className="flex gap-4 md:gap-8">
+          <nav className="flex gap-8">
             {[
               { id: 'profile', label: 'Profile Info' },
               { id: 'security', label: 'Security' },
@@ -220,7 +220,7 @@ export default function ProfilePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`pb-3 px-1 border-b-2 font-medium text-sm md:text-base ${
+                className={`pb-3 px-1 border-b-2 font-medium text-base ${
                   activeTab === tab.id
                     ? 'border-[var(--primary-color)] text-[var(--primary-color)]'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -235,9 +235,9 @@ export default function ProfilePage() {
         {/* Profile Info Tab */}
         {activeTab === 'profile' && (
           <Card>
-            <div className="p-4 md:p-6 space-y-5">
+            <div className="p-6 space-y-5">
               <h3 className="text-student-subheading">Personal Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-6">
                 <Input
                   label="Full Name"
                   value={formData.name}
@@ -275,7 +275,7 @@ export default function ProfilePage() {
         {/* Security Tab */}
         {activeTab === 'security' && (
           <Card>
-            <div className="p-4 md:p-6 space-y-5">
+            <div className="p-6 space-y-5">
               <h3 className="text-student-subheading">Security Settings</h3>
               
               <div className="flex items-center justify-between py-4 border-b">
@@ -314,7 +314,7 @@ export default function ProfilePage() {
         {/* Activity Tab */}
         {activeTab === 'activity' && (
           <Card>
-            <div className="p-4 md:p-6">
+            <div className="p-6">
               <h3 className="text-student-subheading mb-4">Recent Activity</h3>
               {activity.length === 0 ? (
                 <p className="text-center text-student-muted py-8">No recent activity</p>

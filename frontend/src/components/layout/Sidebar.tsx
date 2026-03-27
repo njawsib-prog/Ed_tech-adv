@@ -118,19 +118,9 @@ export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-60 transform transition-transform duration-300 lg:transform-none ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className="flex-shrink-0 w-60 sticky top-0 h-screen overflow-y-auto"
         style={{ backgroundColor: 'var(--color-sidebar-bg)', color: 'var(--color-sidebar-text)' }}
       >
         <div className="flex flex-col h-full">
