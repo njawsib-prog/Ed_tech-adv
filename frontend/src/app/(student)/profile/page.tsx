@@ -193,11 +193,11 @@ export default function ProfilePage() {
         {/* Profile Header */}
         <Card>
           <div className="p-6 flex items-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white text-2xl font-bold">
+            <div className="w-20 h-20 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white text-xl font-bold">
               {profile.name?.charAt(0).toUpperCase() || 'S'}
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900">{profile.name}</h2>
+              <h2 className="text-heading text-gray-900">{profile.name}</h2>
               <p className="text-gray-500">{profile.email}</p>
               <div className="flex items-center gap-4 mt-2">
                 <Badge variant="info">{profile.roll_number}</Badge>

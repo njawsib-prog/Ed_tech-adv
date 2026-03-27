@@ -56,7 +56,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Students</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.totalStudents || 0}</p>
+                <p className="text-lg md:text-xl font-bold text-gray-900">{stats?.totalStudents || 0}</p>
               </div>
             </div>
           </Card>
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Active Today</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.activeStudents || 0}</p>
+                <p className="text-lg md:text-xl font-bold text-gray-900">{stats?.activeStudents || 0}</p>
               </div>
             </div>
           </Card>
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Tests This Week</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.testsThisWeek || 0}</p>
+                <p className="text-lg md:text-xl font-bold text-gray-900">{stats?.testsThisWeek || 0}</p>
               </div>
             </div>
           </Card>
@@ -107,7 +107,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Avg Score</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.avgScore || 0}%</p>
+                <p className="text-lg md:text-xl font-bold text-gray-900">{stats?.avgScore || 0}%</p>
               </div>
             </div>
           </Card>

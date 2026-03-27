@@ -104,7 +104,7 @@ export default function TestAnalyticsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <div className="p-4 text-center">
-              <p className="text-3xl font-bold text-[var(--primary-color)]">
+              <p className="text-xl md:text-2xl font-bold text-[var(--primary-color)]">
                 {analytics.summary.totalAttempts}
               </p>
               <p className="text-sm text-gray-500">Total Attempts</p>
@@ -112,7 +112,7 @@ export default function TestAnalyticsPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-3xl font-bold text-green-600">
+              <p className="text-xl md:text-2xl font-bold text-green-600">
                 {analytics.summary.passedAttempts}
               </p>
               <p className="text-sm text-gray-500">Passed</p>
@@ -120,7 +120,7 @@ export default function TestAnalyticsPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-3xl font-bold">
+              <p className="text-xl md:text-2xl font-bold">
                 {analytics.summary.passRate.toFixed(1)}%
               </p>
               <p className="text-sm text-gray-500">Pass Rate</p>
@@ -128,7 +128,7 @@ export default function TestAnalyticsPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-3xl font-bold">
+              <p className="text-xl md:text-2xl font-bold">
                 {analytics.summary.averagePercentage.toFixed(1)}%
               </p>
               <p className="text-sm text-gray-500">Average Score</p>
@@ -267,7 +267,7 @@ export default function TestAnalyticsPage() {
                       difficulty === 'medium' ? 'bg-yellow-50' : 'bg-red-50'
                     }`}
                   >
-                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-lg md:text-xl font-bold">{count}</p>
                     <p className="text-sm text-gray-500 capitalize">{difficulty} Questions</p>
                     <p className="text-xs text-gray-400">{percentage.toFixed(0)}% of total</p>
                   </div>

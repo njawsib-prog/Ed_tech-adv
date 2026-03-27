@@ -232,9 +232,8 @@ export default function MaterialsPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Study Materials</h1>
+            <h1 className="text-heading text-gray-900">Study Materials</h1>
             <p className="text-gray-500">Manage learning resources for students</p>
-          </div>
           <Button onClick={() => { resetForm(); setShowModal(true); }}>
             + Add Material
           </Button>

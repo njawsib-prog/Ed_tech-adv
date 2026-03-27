@@ -130,7 +130,7 @@ export default function ResultDetailPage() {
           <div className="p-6">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{result.tests.title}</h2>
+                <h2 className="text-heading text-gray-900">{result.tests.title}</h2>
                 <p className="text-gray-500 mt-1">
                   Submitted on {result.submitted_at ? formatDate(result.submitted_at) : 'N/A'}
                 </p>
@@ -148,13 +148,13 @@ export default function ResultDetailPage() {
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-500">Score</p>
-                <p className="text-2xl font-bold text-[var(--primary-color)]">
+                <p className="text-lg md:text-xl font-bold text-[var(--primary-color)]">
                   {result.score} / {result.total_marks}
                 </p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-500">Percentage</p>
-                <p className="text-2xl font-bold">
+                <p className="text-lg md:text-xl font-bold">
                   {result.percentage?.toFixed(1)}%
                 </p>
                 <p className="text-sm text-gray-500">Passing: {result.tests.passing_marks}%</p>

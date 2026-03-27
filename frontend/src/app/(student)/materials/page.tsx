@@ -116,7 +116,7 @@ export default function StudyMaterialsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Study Materials</h1>
+          <h1 className="text-heading text-gray-900">Study Materials</h1>
           <p className="text-gray-500">Access learning resources and study materials</p>
         </div>
 

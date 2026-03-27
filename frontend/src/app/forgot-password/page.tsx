@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
-          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>
+          <h1 className="text-heading text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>
             {config.name}
           </h1>
         </div>

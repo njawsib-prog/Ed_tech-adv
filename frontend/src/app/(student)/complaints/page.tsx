@@ -118,7 +118,7 @@ export default function ComplaintsPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Complaints</h1>
+            <h1 className="text-heading text-gray-900">My Complaints</h1>
             <p className="text-gray-500">Submit and track your complaints and grievances</p>
           </div>
           <Button onClick={() => { resetForm(); setShowModal(true); }}>
@@ -131,7 +131,7 @@ export default function ComplaintsPage() {
           {['open', 'in_progress', 'resolved', 'closed'].map(status => (
             <Card key={status}>
               <div className="p-4 text-center">
-                <p className="text-2xl font-bold">
+                <p className="text-lg md:text-xl font-bold">
                   {complaints.filter(c => c.status === status).length}
                 </p>
                 <p className="text-sm text-gray-500 capitalize">

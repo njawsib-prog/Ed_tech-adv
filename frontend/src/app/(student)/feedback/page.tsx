@@ -127,7 +127,7 @@ export default function FeedbackPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Feedback</h1>
+            <h1 className="text-heading text-gray-900">Feedback</h1>
             <p className="text-gray-500">Share your thoughts and help us improve</p>
           </div>
           <Button onClick={() => { resetForm(); setShowModal(true); }}>

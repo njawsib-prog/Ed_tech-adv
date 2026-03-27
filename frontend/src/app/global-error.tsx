@@ -33,7 +33,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">
               Critical Error
             </h1>
             <p className="text-gray-600 mb-8">

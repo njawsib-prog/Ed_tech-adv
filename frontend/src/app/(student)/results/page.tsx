@@ -100,25 +100,25 @@ export default function StudentResultsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold text-[var(--primary-color)]">{performance.totalTests}</p>
+                <p className="text-xl md:text-2xl font-bold text-[var(--primary-color)]">{performance.totalTests}</p>
                 <p className="text-sm text-gray-500">Tests Taken</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold text-green-600">{performance.passedTests}</p>
+                <p className="text-xl md:text-2xl font-bold text-green-600">{performance.passedTests}</p>
                 <p className="text-sm text-gray-500">Passed</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold">{performance.averagePercentage.toFixed(1)}%</p>
+                <p className="text-xl md:text-2xl font-bold">{performance.averagePercentage.toFixed(1)}%</p>
                 <p className="text-sm text-gray-500">Avg Score</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className={`text-3xl font-bold ${
+                <p className={`text-xl md:text-2xl font-bold ${
                   performance.improvementTrend === 'improving' ? 'text-green-600' :
                   performance.improvementTrend === 'declining' ? 'text-red-600' : 'text-gray-600'
                 }`}>

@@ -155,7 +155,7 @@ export default function TakeTestPage() {
           <h1 className="text-lg font-semibold text-gray-900">Test in Progress</h1>
           <div className="flex items-center gap-4">
             <div
-              className={`text-2xl font-bold font-mono ${
+              className={`text-xl md:text-2xl font-bold font-mono ${
                 timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-gray-900'
               }`}
             >
@@ -289,15 +289,15 @@ export default function TakeTestPage() {
           <p className="text-gray-600">Are you sure you want to submit your test?</p>
           <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-base text-center">
             <div>
-              <p className="text-2xl font-bold text-green-600">{answered}</p>
+              <p className="text-lg md:text-xl font-bold text-green-600">{answered}</p>
               <p className="text-sm text-gray-500">Answered</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-amber-600">{marked}</p>
+              <p className="text-lg md:text-xl font-bold text-amber-600">{marked}</p>
               <p className="text-sm text-gray-500">Marked</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-red-600">{unanswered}</p>
+              <p className="text-lg md:text-xl font-bold text-red-600">{unanswered}</p>
               <p className="text-sm text-gray-500">Unanswered</p>
             </div>
           </div>

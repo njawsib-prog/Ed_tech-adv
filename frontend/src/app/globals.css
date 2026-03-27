@@ -21,3 +21,27 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
 }
+
+@layer components {
+  /* Page titles — used for main headings on every page */
+  .text-heading {
+    @apply text-xl md:text-2xl font-semibold;
+    font-family: var(--font-heading);
+  }
+
+  /* Section titles — used for card headers and subsections */
+  .text-subheading {
+    @apply text-base md:text-lg font-medium;
+    font-family: var(--font-heading);
+  }
+
+  /* Body text — default readable prose */
+  .text-body {
+    @apply text-sm md:text-base;
+  }
+
+  /* Small labels — captions, metadata, helper text */
+  .text-small {
+    @apply text-xs md:text-sm text-gray-500;
+  }
+}
