@@ -29,7 +29,7 @@ interface Material {
   title: string;
   description: string;
   type: 'pdf' | 'video' | 'document' | 'link' | 'text';
-  file_url: string;
+  url: string;
   file_size: number;
   is_published: boolean;
   created_at: string;
@@ -76,7 +76,7 @@ export default function MaterialsPage() {
     description: '',
     type: 'pdf',
     subjectId: '',
-    fileUrl: '',
+    url: '',
     content: '',
     isPublished: false
   });
@@ -138,7 +138,7 @@ export default function MaterialsPage() {
         description: formData.description,
         type: formData.type,
         subjectId: formData.subjectId,
-        fileUrl: formData.fileUrl || undefined,
+        url: formData.url || undefined,
         content: formData.content || undefined,
         isPublished: formData.isPublished
       };
@@ -167,7 +167,7 @@ export default function MaterialsPage() {
       description: material.description || '',
       type: material.type,
       subjectId: material.subjects?.id || '',
-      fileUrl: material.file_url || '',
+      url: material.url || '',
       content: '',
       isPublished: material.is_published
     });
@@ -201,7 +201,7 @@ export default function MaterialsPage() {
       description: '',
       type: 'pdf',
       subjectId: '',
-      fileUrl: '',
+      url: '',
       content: '',
       isPublished: false
     });
@@ -472,8 +472,8 @@ export default function MaterialsPage() {
             <Input
               label={formData.type === 'link' ? 'URL' : 'File URL'}
               type="url"
-              value={formData.fileUrl}
-              onChange={(e) => setFormData(f => ({ ...f, fileUrl: e.target.value }))}
+              value={formData.url}
+              onChange={(e) => setFormData(f => ({ ...f, url: e.target.value }))}
               placeholder={formData.type === 'link' ? 'https://...' : 'File storage URL'}
             />
           )}

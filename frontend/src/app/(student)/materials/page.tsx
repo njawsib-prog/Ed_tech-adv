@@ -26,7 +26,7 @@ interface Material {
   title: string;
   description: string;
   type: 'pdf' | 'video' | 'document' | 'link' | 'text';
-  file_url: string;
+  url: string;
   file_size: number;
   created_at: string;
   subjects: Subject;
@@ -246,10 +246,10 @@ export default function StudyMaterialsPage() {
               </p>
             </div>
 
-            {(selectedMaterial.type === 'pdf' || selectedMaterial.type === 'document' || selectedMaterial.type === 'link') && selectedMaterial.file_url && (
+            {(selectedMaterial.type === 'pdf' || selectedMaterial.type === 'document' || selectedMaterial.type === 'link') && selectedMaterial.url && (
               <div className="space-y-3">
                 <a
-                  href={selectedMaterial.file_url}
+                  href={selectedMaterial.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full"
@@ -261,10 +261,10 @@ export default function StudyMaterialsPage() {
               </div>
             )}
 
-            {selectedMaterial.type === 'video' && selectedMaterial.file_url && (
+            {selectedMaterial.type === 'video' && selectedMaterial.url && (
               <div className="aspect-video bg-black rounded-lg overflow-hidden">
                 <iframe
-                  src={selectedMaterial.file_url}
+                  src={selectedMaterial.url}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
