@@ -2,6 +2,10 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
+// Paths that are themselves login pages — the 401 interceptor must not redirect
+// here, otherwise refreshUser() on mount would trigger an infinite reload loop.
+const LOGIN_ROUTES = ['/', '/admin/login'];
+
 console.log('[ApiClient] >>> STEP X: Initializing with API_URL:', API_URL);
 console.log('[ApiClient] STEP Xb: NEXT_PUBLIC_API_URL env var:', process.env.NEXT_PUBLIC_API_URL);
 
@@ -63,14 +67,19 @@ apiClient.interceptors.response.use(
 
     if (error.response?.status === 401) {
       console.log('[ApiClient] STEP ERR10: 401 Unauthorized detected');
-      // Redirect to login if not authenticated
+      // Redirect to login only when NOT already on a login page, to avoid reload loops
       if (typeof window !== 'undefined') {
-        console.log('[ApiClient] STEP ERR11: 401 Unauthorized, redirecting to login');
         const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/admin')) {
-          window.location.href = '/admin/login';
-        } else if (!currentPath.includes('/login')) {
-          window.location.href = '/';
+        const isOnLoginPage = LOGIN_ROUTES.includes(currentPath);
+        if (!isOnLoginPage) {
+          console.log('[ApiClient] STEP ERR11: 401 Unauthorized, redirecting to login');
+          if (currentPath.startsWith('/admin')) {
+            window.location.href = '/admin/login';
+          } else {
+            window.location.href = '/';
+          }
+        } else {
+          console.log('[ApiClient] STEP ERR11: 401 on login page — skipping redirect to avoid reload loop');
         }
       }
     }
