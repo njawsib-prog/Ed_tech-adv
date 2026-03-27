@@ -146,10 +146,10 @@ export default function ComplaintsPage() {
 
   return (
     <PageWrapper title="Complaints">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Complaints & Grievances</h1>
+          <h1 className="text-xl font-bold text-gray-900">Complaints & Grievances</h1>
           <p className="text-gray-500">View and respond to student complaints</p>
         </div>
 
@@ -157,7 +157,7 @@ export default function ComplaintsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <div className="p-4 text-center">
-              <p className="text-2xl font-bold text-red-600">
+              <p className="text-xl font-bold text-red-600">
                 {complaints.filter(c => c.status === 'open').length}
               </p>
               <p className="text-sm text-gray-500">Open</p>
@@ -165,7 +165,7 @@ export default function ComplaintsPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-2xl font-bold text-yellow-600">
+              <p className="text-xl font-bold text-yellow-600">
                 {complaints.filter(c => c.status === 'in_progress').length}
               </p>
               <p className="text-sm text-gray-500">In Progress</p>
@@ -173,7 +173,7 @@ export default function ComplaintsPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-xl font-bold text-green-600">
                 {complaints.filter(c => c.status === 'resolved').length}
               </p>
               <p className="text-sm text-gray-500">Resolved</p>
@@ -181,7 +181,7 @@ export default function ComplaintsPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-xl font-bold text-blue-600">
                 {complaints.filter(c => c.status === 'closed').length}
               </p>
               <p className="text-sm text-gray-500">Closed</p>

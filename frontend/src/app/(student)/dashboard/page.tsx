@@ -60,7 +60,7 @@ export default function StudentDashboard() {
           <Card>
             <div className="text-center p-4">
               <p className="text-student-muted mb-1">Total Tests</p>
-              <p className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {data?.stats.totalTests || 0}
               </p>
             </div>
@@ -68,7 +68,7 @@ export default function StudentDashboard() {
           <Card>
             <div className="text-center p-4">
               <p className="text-student-muted mb-1">Avg Score</p>
-              <p className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {data?.stats.avgScore || 0}%
               </p>
             </div>
@@ -76,7 +76,7 @@ export default function StudentDashboard() {
           <Card>
             <div className="text-center p-4">
               <p className="text-student-muted mb-1">Best Score</p>
-              <p className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {data?.stats.bestScore || 0}%
               </p>
             </div>
@@ -84,7 +84,7 @@ export default function StudentDashboard() {
           <Card>
             <div className="text-center p-4">
               <p className="text-student-muted mb-1">Streak</p>
-              <p className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {data?.stats.streak || 0} 🔥
               </p>
             </div>

@@ -162,7 +162,7 @@ export default function ResultsPage() {
 
   return (
     <PageWrapper title="Results & Analytics">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Filters */}
         <Card>
           <div className="p-4">
@@ -229,7 +229,7 @@ export default function ResultsPage() {
         {/* Results Table */}
         <Card>
           <div className="p-4">
-            <h3 className="text-lg font-semibold mb-4">Test Results</h3>
+            <h3 className="text-base font-semibold mb-4">Test Results</h3>
             {loading ? (
               <div className="flex justify-center py-8">
                 <Spinner />

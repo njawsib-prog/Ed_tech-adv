@@ -19,7 +19,7 @@ export default function Card({ title, children, className = '', onClick }: CardP
     >
       {title && (
         <div className="px-4 py-3 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          <h3 className="text-base font-semibold text-gray-800">{title}</h3>
         </div>
       )}
       <div className="p-4">{children}</div>

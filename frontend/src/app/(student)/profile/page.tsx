@@ -179,7 +179,7 @@ export default function ProfilePage() {
     return (
       <PageWrapper title="Profile Not Found">
         <Card>
-          <div className="p-6 text-center">
+          <div className="p-4 text-center">
             <p className="text-gray-500">Profile not found.</p>
           </div>
         </Card>
@@ -189,11 +189,11 @@ export default function ProfilePage() {
 
   return (
     <PageWrapper title="My Profile">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Profile Header */}
         <Card>
-          <div className="p-6 flex items-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+          <div className="p-4 flex items-center gap-4">
+            <div className="w-20 h-20 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
               {profile.name?.charAt(0).toUpperCase() || 'S'}
             </div>
             <div className="flex-1 min-w-0">
@@ -235,9 +235,9 @@ export default function ProfilePage() {
         {/* Profile Info Tab */}
         {activeTab === 'profile' && (
           <Card>
-            <div className="p-6 space-y-5">
+            <div className="p-4 space-y-5">
               <h3 className="text-student-subheading">Personal Information</h3>
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <Input
                   label="Full Name"
                   value={formData.name}
@@ -275,7 +275,7 @@ export default function ProfilePage() {
         {/* Security Tab */}
         {activeTab === 'security' && (
           <Card>
-            <div className="p-6 space-y-5">
+            <div className="p-4 space-y-5">
               <h3 className="text-student-subheading">Security Settings</h3>
               
               <div className="flex items-center justify-between py-4 border-b">
@@ -314,7 +314,7 @@ export default function ProfilePage() {
         {/* Activity Tab */}
         {activeTab === 'activity' && (
           <Card>
-            <div className="p-6">
+            <div className="p-4">
               <h3 className="text-student-subheading mb-4">Recent Activity</h3>
               {activity.length === 0 ? (
                 <p className="text-center text-student-muted py-8">No recent activity</p>

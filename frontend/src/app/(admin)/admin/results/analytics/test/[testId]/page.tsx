@@ -86,7 +86,7 @@ export default function TestAnalyticsPage() {
     return (
       <PageWrapper title="Analytics Not Found">
         <Card>
-          <div className="p-6 text-center">
+          <div className="p-4 text-center">
             <p className="text-gray-500">Analytics data could not be loaded.</p>
             <Button onClick={() => router.back()} className="mt-4">Go Back</Button>
           </div>
@@ -99,12 +99,12 @@ export default function TestAnalyticsPage() {
 
   return (
     <PageWrapper title={`Analytics: ${analytics.test.title}`}>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <div className="p-4 text-center">
-              <p className="text-3xl font-bold text-[var(--primary-color)]">
+              <p className="text-xl font-bold text-[var(--primary-color)]">
                 {analytics.summary.totalAttempts}
               </p>
               <p className="text-sm text-gray-500">Total Attempts</p>
@@ -112,7 +112,7 @@ export default function TestAnalyticsPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-3xl font-bold text-green-600">
+              <p className="text-xl font-bold text-green-600">
                 {analytics.summary.passedAttempts}
               </p>
               <p className="text-sm text-gray-500">Passed</p>
@@ -120,7 +120,7 @@ export default function TestAnalyticsPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-3xl font-bold">
+              <p className="text-xl font-bold">
                 {analytics.summary.passRate.toFixed(1)}%
               </p>
               <p className="text-sm text-gray-500">Pass Rate</p>
@@ -128,7 +128,7 @@ export default function TestAnalyticsPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-3xl font-bold">
+              <p className="text-xl font-bold">
                 {analytics.summary.averagePercentage.toFixed(1)}%
               </p>
               <p className="text-sm text-gray-500">Average Score</p>
@@ -137,11 +137,11 @@ export default function TestAnalyticsPage() {
         </div>
 
         {/* Detailed Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Test Info */}
           <Card>
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Test Information</h3>
+            <div className="p-4">
+              <h3 className="text-base font-semibold mb-4">Test Information</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Test Title</span>
@@ -169,8 +169,8 @@ export default function TestAnalyticsPage() {
 
           {/* Score Distribution */}
           <Card>
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Score Distribution</h3>
+            <div className="p-4">
+              <h3 className="text-base font-semibold mb-4">Score Distribution</h3>
               <div className="space-y-3">
                 {analytics.scoreDistribution.map((range) => (
                   <div key={range.range} className="flex items-center gap-3">
@@ -191,8 +191,8 @@ export default function TestAnalyticsPage() {
 
         {/* Question Statistics */}
         <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Question-wise Statistics</h3>
+          <div className="p-4">
+            <h3 className="text-base font-semibold mb-4">Question-wise Statistics</h3>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -250,8 +250,8 @@ export default function TestAnalyticsPage() {
 
         {/* Difficulty Summary */}
         <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Difficulty Analysis</h3>
+          <div className="p-4">
+            <h3 className="text-base font-semibold mb-4">Difficulty Analysis</h3>
             <div className="grid grid-cols-3 gap-4">
               {['easy', 'medium', 'hard'].map(difficulty => {
                 const count = analytics.questionStats.filter(q => q.difficulty === difficulty).length;
@@ -267,7 +267,7 @@ export default function TestAnalyticsPage() {
                       difficulty === 'medium' ? 'bg-yellow-50' : 'bg-red-50'
                     }`}
                   >
-                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-xl font-bold">{count}</p>
                     <p className="text-sm text-gray-500 capitalize">{difficulty} Questions</p>
                     <p className="text-xs text-gray-400">{percentage.toFixed(0)}% of total</p>
                   </div>

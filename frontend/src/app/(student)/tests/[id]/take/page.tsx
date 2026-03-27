@@ -152,10 +152,10 @@ export default function TakeTestPage() {
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">Test in Progress</h1>
+          <h1 className="text-base font-semibold text-gray-900">Test in Progress</h1>
           <div className="flex items-center gap-4">
             <div
-              className={`text-2xl font-bold font-mono ${
+              className={`text-xl font-bold font-mono ${
                 timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-gray-900'
               }`}
             >
@@ -168,7 +168,7 @@ export default function TakeTestPage() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex gap-4">
         {/* Question Navigator */}
         <aside className="w-32 shrink-0">
           <div className="bg-white rounded-base shadow p-3 sticky top-24">
@@ -206,12 +206,12 @@ export default function TakeTestPage() {
         {/* Main Content */}
         <main className="flex-1">
           {currentQuestion && (
-            <div className="bg-white rounded-base shadow p-6">
-              <div className="mb-6">
+            <div className="bg-white rounded-base shadow p-4">
+              <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-2">
                   Question {currentIndex + 1} of {questions.length}
                 </p>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-base font-medium text-gray-900">
                   {currentQuestion.question_text}
                 </h2>
               </div>
@@ -289,15 +289,15 @@ export default function TakeTestPage() {
           <p className="text-gray-600">Are you sure you want to submit your test?</p>
           <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-base text-center">
             <div>
-              <p className="text-2xl font-bold text-green-600">{answered}</p>
+              <p className="text-xl font-bold text-green-600">{answered}</p>
               <p className="text-sm text-gray-500">Answered</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-amber-600">{marked}</p>
+              <p className="text-xl font-bold text-amber-600">{marked}</p>
               <p className="text-sm text-gray-500">Marked</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-red-600">{unanswered}</p>
+              <p className="text-xl font-bold text-red-600">{unanswered}</p>
               <p className="text-sm text-gray-500">Unanswered</p>
             </div>
           </div>

@@ -121,10 +121,10 @@ export default function FeedbackPage() {
 
   return (
     <PageWrapper title="Feedback">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Student Feedback</h1>
+          <h1 className="text-xl font-bold text-gray-900">Student Feedback</h1>
           <p className="text-gray-500">View and analyze student feedback</p>
         </div>
 
@@ -133,13 +133,13 @@ export default function FeedbackPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold text-[var(--primary-color)]">{stats.totalFeedback}</p>
+                <p className="text-xl font-bold text-[var(--primary-color)]">{stats.totalFeedback}</p>
                 <p className="text-sm text-gray-500">Total Feedback</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold text-yellow-500">
+                <p className="text-xl font-bold text-yellow-500">
                   {stats.averageRating.toFixed(1)}
                   <span className="text-lg text-gray-400">/5</span>
                 </p>
@@ -176,7 +176,7 @@ export default function FeedbackPage() {
               <div className="grid grid-cols-4 gap-4">
                 {Object.entries(stats.typeDistribution).map(([type, count]) => (
                   <div key={type} className="text-center p-3 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-xl font-bold">{count}</p>
                     <p className="text-sm text-gray-500 capitalize">{type}</p>
                   </div>
                 ))}

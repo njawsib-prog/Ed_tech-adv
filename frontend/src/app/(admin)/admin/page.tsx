@@ -43,7 +43,7 @@ export default function AdminDashboard() {
   return (
     <PageWrapper title="Dashboard Overview">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
             <div className="flex items-center">
               <div
@@ -56,7 +56,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Students</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.totalStudents || 0}</p>
+                <p className="text-xl font-bold text-gray-900">{stats?.totalStudents || 0}</p>
               </div>
             </div>
           </Card>
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Active Today</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.activeStudents || 0}</p>
+                <p className="text-xl font-bold text-gray-900">{stats?.activeStudents || 0}</p>
               </div>
             </div>
           </Card>
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Tests This Week</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.testsThisWeek || 0}</p>
+                <p className="text-xl font-bold text-gray-900">{stats?.testsThisWeek || 0}</p>
               </div>
             </div>
           </Card>
@@ -107,7 +107,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Avg Score</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.avgScore || 0}%</p>
+                <p className="text-xl font-bold text-gray-900">{stats?.avgScore || 0}%</p>
               </div>
             </div>
           </Card>

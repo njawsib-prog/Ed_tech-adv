@@ -52,12 +52,12 @@ export default function StudentTestsPage() {
   return (
     <PageWrapper title="My Tests">
         {/* Tabs */}
-        <div className="flex gap-6 mb-6 border-b border-gray-200">
+        <div className="flex gap-4 mb-4 border-b border-gray-200">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`px-3 pb-2.5 font-medium text-base border-b-2 transition-colors ${
+              className={`px-3 pb-2.5 font-medium text-sm border-b-2 transition-colors ${
                 activeTab === tab.key
                   ? 'border-current'
                   : 'border-transparent text-gray-500 hover:text-gray-700'

@@ -113,10 +113,10 @@ export default function StudyMaterialsPage() {
 
   return (
     <PageWrapper title="Study Materials">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Study Materials</h1>
+          <h1 className="text-xl font-bold text-gray-900">Study Materials</h1>
           <p className="text-gray-500">Access learning resources and study materials</p>
         </div>
 

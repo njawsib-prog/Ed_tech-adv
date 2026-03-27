@@ -66,26 +66,26 @@ export default function TestDetailPage() {
   return (
     <PageWrapper title={test.title}>
         <Card className="max-w-2xl mx-auto">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{test.title}</h2>
+          <div className="text-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{test.title}</h2>
             <Badge variant="info">{test.course_name}</Badge>
           </div>
 
           {test.description && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-base">
+            <div className="mb-4 p-4 bg-gray-50 rounded-base">
               <p className="text-gray-700">{test.description}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="text-center p-4 bg-gray-50 rounded-base">
-              <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {test.question_count}
               </p>
               <p className="text-sm text-gray-500">Questions</p>
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-base">
-              <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              <p className="text-xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 {test.time_limit_mins}
               </p>
               <p className="text-sm text-gray-500">Minutes</p>

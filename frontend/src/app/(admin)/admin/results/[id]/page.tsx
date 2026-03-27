@@ -110,7 +110,7 @@ export default function ResultDetailPage() {
     return (
       <PageWrapper title="Result Not Found">
         <Card>
-          <div className="p-6 text-center">
+          <div className="p-4 text-center">
             <p className="text-gray-500">The requested result could not be found.</p>
             <Button onClick={() => router.back()} className="mt-4">Go Back</Button>
           </div>
@@ -124,44 +124,44 @@ export default function ResultDetailPage() {
 
   return (
     <PageWrapper title={`Result: ${result.tests.title}`}>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Result Summary */}
         <Card>
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-6">
+          <div className="p-4">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{result.tests.title}</h2>
+                <h2 className="text-xl font-bold text-gray-900">{result.tests.title}</h2>
                 <p className="text-gray-500 mt-1">
                   Submitted on {result.submitted_at ? formatDate(result.submitted_at) : 'N/A'}
                 </p>
               </div>
-              <Badge variant={result.status === 'passed' ? 'success' : 'danger'} className="text-lg px-4 py-2">
+              <Badge variant={result.status === 'passed' ? 'success' : 'danger'} className="text-base px-3 py-1.5">
                 {result.status?.toUpperCase()}
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-500">Student</p>
-                <p className="text-lg font-semibold">{result.students?.name}</p>
+                <p className="text-base font-semibold">{result.students?.name}</p>
                 <p className="text-sm text-gray-500">{result.students?.roll_number}</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-500">Score</p>
-                <p className="text-2xl font-bold text-[var(--primary-color)]">
+                <p className="text-xl font-bold text-[var(--primary-color)]">
                   {result.score} / {result.total_marks}
                 </p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-500">Percentage</p>
-                <p className="text-2xl font-bold">
+                <p className="text-xl font-bold">
                   {result.percentage?.toFixed(1)}%
                 </p>
                 <p className="text-sm text-gray-500">Passing: {result.tests.passing_marks}%</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-500">Time Taken</p>
-                <p className="text-lg font-semibold">
+                <p className="text-base font-semibold">
                   {result.time_taken_seconds ? formatTime(result.time_taken_seconds) : 'N/A'}
                 </p>
                 <p className="text-sm text-gray-500">Allowed: {result.tests.duration_minutes} min</p>
@@ -172,8 +172,8 @@ export default function ResultDetailPage() {
 
         {/* Question-wise Analysis */}
         <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Question-wise Analysis</h3>
+          <div className="p-4">
+            <h3 className="text-base font-semibold mb-4">Question-wise Analysis</h3>
             <div className="space-y-4">
               {questions.map((question, index) => {
                 const answer = answers[index];

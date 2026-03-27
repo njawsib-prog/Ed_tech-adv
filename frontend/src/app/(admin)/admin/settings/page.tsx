@@ -187,10 +187,10 @@ export default function SettingsPage() {
 
   return (
     <PageWrapper title="Settings">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-xl font-bold text-gray-900">Settings</h1>
           <p className="text-gray-500">Manage your institute settings and preferences</p>
         </div>
 
@@ -221,10 +221,10 @@ export default function SettingsPage() {
         {/* Institute Settings */}
         {activeTab === 'institute' && instituteConfig && (
           <Card>
-            <div className="p-6 space-y-6">
-              <h3 className="text-lg font-semibold">Institute Information</h3>
+            <div className="p-4 space-y-4">
+              <h3 className="text-base font-semibold">Institute Information</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Institute Name"
                   value={instituteConfig.name}
@@ -258,8 +258,8 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <h3 className="text-lg font-semibold pt-4">Brand Colors</h3>
-              <div className="grid grid-cols-2 gap-6">
+              <h3 className="text-base font-semibold pt-4">Brand Colors</h3>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
                   <div className="flex gap-2">
@@ -304,8 +304,8 @@ export default function SettingsPage() {
         {/* Feature Settings */}
         {activeTab === 'features' && (
           <Card>
-            <div className="p-6 space-y-6">
-              <h3 className="text-lg font-semibold">Feature Settings</h3>
+            <div className="p-4 space-y-4">
+              <h3 className="text-base font-semibold">Feature Settings</h3>
               
               <div className="space-y-4">
                 {[
@@ -344,8 +344,8 @@ export default function SettingsPage() {
         {/* Security Settings */}
         {activeTab === 'security' && (
           <Card>
-            <div className="p-6 space-y-6">
-              <h3 className="text-lg font-semibold">Security Settings</h3>
+            <div className="p-4 space-y-4">
+              <h3 className="text-base font-semibold">Security Settings</h3>
               
               {!showPasswordForm ? (
                 <div className="flex items-center justify-between py-4 border-b">
@@ -415,9 +415,9 @@ export default function SettingsPage() {
         {/* Admin Users */}
         {activeTab === 'admins' && (
           <Card>
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold">Admin Users</h3>
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base font-semibold">Admin Users</h3>
                 <Button onClick={() => setShowAdminModal(true)}>+ Add Admin</Button>
               </div>
 
@@ -463,8 +463,8 @@ export default function SettingsPage() {
         {/* Add Admin Modal */}
         {showAdminModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-4">Add New Admin</h3>
+            <div className="bg-white rounded-lg p-4 w-full max-w-md">
+              <h3 className="text-base font-semibold mb-4">Add New Admin</h3>
               <div className="space-y-4">
                 <Input
                   label="Name"

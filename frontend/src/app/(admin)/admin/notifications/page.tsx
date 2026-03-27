@@ -152,11 +152,11 @@ export default function NotificationsPage() {
 
   return (
     <PageWrapper title="Notifications">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+            <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
             <p className="text-gray-500">Manage and send notifications to students</p>
           </div>
           <Button onClick={() => { resetForm(); setShowModal(true); }}>

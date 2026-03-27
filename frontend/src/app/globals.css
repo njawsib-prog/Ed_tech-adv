@@ -24,11 +24,11 @@ h1, h2, h3, h4, h5, h6 {
 
 @layer components {
   .text-student-heading {
-    @apply text-lg md:text-xl font-semibold;
+    @apply text-base md:text-lg font-semibold;
   }
 
   .text-student-subheading {
-    @apply text-base md:text-lg font-medium;
+    @apply text-sm md:text-base font-medium;
   }
 
   .text-student-body {

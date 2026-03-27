@@ -94,31 +94,31 @@ export default function StudentResultsPage() {
 
   return (
     <PageWrapper title="My Results">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Performance Summary */}
         {performance && (
           <div className="grid grid-cols-4 gap-4">
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold text-[var(--primary-color)]">{performance.totalTests}</p>
+                <p className="text-xl font-bold text-[var(--primary-color)]">{performance.totalTests}</p>
                 <p className="text-student-muted mt-1">Tests Taken</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold text-green-600">{performance.passedTests}</p>
+                <p className="text-xl font-bold text-green-600">{performance.passedTests}</p>
                 <p className="text-student-muted mt-1">Passed</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold">{performance.averagePercentage.toFixed(1)}%</p>
+                <p className="text-xl font-bold">{performance.averagePercentage.toFixed(1)}%</p>
                 <p className="text-student-muted mt-1">Avg Score</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className={`text-3xl font-bold ${
+                <p className={`text-xl font-bold ${
                   performance.improvementTrend === 'improving' ? 'text-green-600' :
                   performance.improvementTrend === 'declining' ? 'text-red-600' : 'text-gray-600'
                 }`}>
@@ -134,7 +134,7 @@ export default function StudentResultsPage() {
         {/* Subject Performance */}
         {performance && Object.keys(performance.subjectPerformance).length > 0 && (
           <Card>
-            <div className="p-6">
+            <div className="p-4">
               <h3 className="text-student-subheading mb-4">Subject-wise Performance</h3>
               <div className="space-y-3">
                 {Object.entries(performance.subjectPerformance).map(([subject, data]) => (
@@ -166,7 +166,7 @@ export default function StudentResultsPage() {
 
         {/* Results List */}
         <Card>
-          <div className="p-6">
+          <div className="p-4">
             <h3 className="text-student-subheading mb-4">Test History</h3>
             {results.length === 0 ? (
               <p className="text-center text-student-muted py-8">No test results yet.</p>

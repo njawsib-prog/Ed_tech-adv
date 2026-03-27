@@ -123,11 +123,11 @@ export default function FeedbackPage() {
 
   return (
     <PageWrapper title="Feedback">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Feedback</h1>
+            <h1 className="text-xl font-bold text-gray-900">Feedback</h1>
             <p className="text-gray-500">Share your thoughts and help us improve</p>
           </div>
           <Button onClick={() => { resetForm(); setShowModal(true); }}>
@@ -137,8 +137,8 @@ export default function FeedbackPage() {
 
         {/* Feedback History */}
         <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Your Feedback History</h3>
+          <div className="p-4">
+            <h3 className="text-base font-semibold mb-4">Your Feedback History</h3>
             {loading ? (
               <div className="flex justify-center py-8">
                 <Spinner />

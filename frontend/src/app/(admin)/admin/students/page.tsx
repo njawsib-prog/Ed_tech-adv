@@ -198,7 +198,7 @@ export default function StudentsPage() {
         }
       >
         {/* Filters */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="mb-4 flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <Input
               placeholder="Search by name or email..."

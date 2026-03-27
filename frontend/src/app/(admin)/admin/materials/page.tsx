@@ -228,11 +228,11 @@ export default function MaterialsPage() {
 
   return (
     <PageWrapper title="Study Materials">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Study Materials</h1>
+            <h1 className="text-xl font-bold text-gray-900">Study Materials</h1>
             <p className="text-gray-500">Manage learning resources for students</p>
           </div>
           <Button onClick={() => { resetForm(); setShowModal(true); }}>
