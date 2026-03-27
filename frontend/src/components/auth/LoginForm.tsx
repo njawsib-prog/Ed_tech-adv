@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,19 +25,59 @@ export default function LoginForm({ role, onSuccess }: LoginFormProps) {
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('[LoginForm] handleSubmit called');
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      console.log('[LoginForm] Calling login with', { email: email?.substring(0, 3) + '***', role });
       await login(email, password, role);
+      console.log('[LoginForm] Login succeeded, redirecting...');
       if (onSuccess) {
         onSuccess();
       } else {
         router.push(role === 'admin' ? '/admin' : '/dashboard');
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      console.error('[LoginForm] Login error:', err);
+
+      let errorMessage = 'Login failed. Please try again.';
+
+      // Handle different types of errors
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          // Server responded with error status
+          console.error('[LoginForm] Server error:', {
+            status: err.response.status,
+            data: err.response.data
+          });
+          errorMessage = err.response.data?.error || err.response.data?.message || `Server error (${err.response.status})`;
+        } else if (err.request) {
+          // Request was made but no response received
+          console.error('[LoginForm] No response received:', err.message);
+          errorMessage = 'No response from server. Please check your connection and try again.';
+        } else {
+          // Error in setting up the request
+          console.error('[LoginForm] Request setup error:', err.message);
+          errorMessage = `Request error: ${err.message}`;
+        }
+
+        // Specific error codes
+        if (err.code === 'ECONNREFUSED') {
+          errorMessage = 'Connection refused. Is the backend server running?';
+        } else if (err.code === 'ENOTFOUND') {
+          errorMessage = 'Server not found. Please check API URL configuration.';
+        } else if (err.code === 'ETIMEDOUT') {
+          errorMessage = 'Connection timed out. Please try again.';
+        }
+      } else {
+        // Non-Axios error
+        console.error('[LoginForm] Non-Axios error:', err);
+        errorMessage = err.message || 'An unexpected error occurred.';
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
