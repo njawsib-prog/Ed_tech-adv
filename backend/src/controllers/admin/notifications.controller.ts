@@ -206,17 +206,16 @@ export const getComplaints = async (req: AuthRequest, res: Response) => {
         students (
           id,
           name,
-          email,
-          roll_number
+          email
         ),
         complaint_replies (
           id,
           message,
           created_at,
-          admin_id
+          sender_id,
+          sender_role
         )
-      `, { count: 'exact' })
-      .eq('institute_id', instituteId);
+      `, { count: 'exact' });
 
     if (status) {
       query = query.eq('status', status);
@@ -269,19 +268,17 @@ export const getComplaintById = async (req: AuthRequest, res: Response) => {
         students (
           id,
           name,
-          email,
-          roll_number
+          email
         ),
         complaint_replies (
           id,
           message,
           created_at,
-          admin_id,
-          admins (name)
+          sender_id,
+          sender_role
         )
       `)
       .eq('id', id)
-      .eq('institute_id', instituteId)
       .single();
 
     if (error) {
@@ -312,7 +309,8 @@ export const replyToComplaint = async (req: AuthRequest, res: Response) => {
       .from('complaint_replies')
       .insert({
         complaint_id: id,
-        admin_id: adminId,
+        sender_id: adminId,
+        sender_role: 'admin',
         message
       })
       .select()
@@ -327,8 +325,7 @@ export const replyToComplaint = async (req: AuthRequest, res: Response) => {
       await supabaseAdmin
         .from('complaints')
         .update({ status: updateStatus, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('institute_id', instituteId);
+        .eq('id', id);
     }
 
     res.status(201).json(reply);
@@ -353,7 +350,6 @@ export const updateComplaintStatus = async (req: AuthRequest, res: Response) => 
       .from('complaints')
       .update(updateData)
       .eq('id', id)
-      .eq('institute_id', instituteId)
       .select()
       .single();
 

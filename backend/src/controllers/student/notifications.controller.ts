@@ -173,7 +173,6 @@ export const submitComplaint = async (req: AuthRequest, res: Response) => {
     const { data, error } = await supabaseAdmin
       .from('complaints')
       .insert({
-        institute_id: instituteId,
         student_id: studentId,
         title,
         description,
@@ -206,6 +205,7 @@ export const getMyComplaints = async (req: AuthRequest, res: Response) => {
       .select(`
         id,
         title,
+        description,
         category,
         status,
         priority,
@@ -218,7 +218,6 @@ export const getMyComplaints = async (req: AuthRequest, res: Response) => {
         )
       `)
       .eq('student_id', studentId)
-      .eq('institute_id', instituteId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -258,7 +257,6 @@ export const getComplaintById = async (req: AuthRequest, res: Response) => {
       `)
       .eq('id', id)
       .eq('student_id', studentId)
-      .eq('institute_id', instituteId)
       .single();
 
     if (error) {
