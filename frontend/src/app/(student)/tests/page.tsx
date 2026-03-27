@@ -52,12 +52,12 @@ export default function StudentTestsPage() {
   return (
     <PageWrapper title="My Tests">
         {/* Tabs */}
-        <div className="flex space-x-2 mb-6 border-b border-gray-200">
+        <div className="flex gap-4 md:gap-6 mb-6 border-b border-gray-200">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              className={`px-3 pb-2.5 font-medium text-sm md:text-base border-b-2 transition-colors ${
                 activeTab === tab.key
                   ? 'border-current'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -73,7 +73,7 @@ export default function StudentTestsPage() {
         {currentTests.length === 0 ? (
           <Card>
             <div className="text-center py-12">
-              <p className="text-gray-500">No {activeTab} tests</p>
+              <p className="text-student-muted">No {activeTab} tests</p>
             </div>
           </Card>
         ) : (
@@ -81,28 +81,28 @@ export default function StudentTestsPage() {
             {currentTests.map((test: any) => (
               <Card key={test.id}>
                 <div className="mb-3">
-                  <h3 className="text-lg font-semibold text-gray-900">{test.title}</h3>
-                  <p className="text-sm text-gray-500">{test.course_name}</p>
+                  <h3 className="text-student-subheading text-gray-900">{test.title}</h3>
+                  <p className="text-student-muted mt-0.5">{test.course_name}</p>
                 </div>
 
                 <div className="flex items-center gap-2 mb-4">
                   <Badge variant={test.type === 'practice' ? 'warning' : 'info'}>
                     {test.type}
                   </Badge>
-                  <span className="text-sm text-gray-500">{test.time_limit_mins} mins</span>
+                  <span className="text-student-muted">{test.time_limit_mins} mins</span>
                 </div>
 
                 {activeTab === 'completed' && test.result && (
-                  <div className="p-3 bg-gray-50 rounded-base mb-4">
+                  <div className="p-3 bg-gray-50 rounded-xl mb-4">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Score:</span>
-                      <span className="font-bold" style={{ color: 'var(--color-primary)' }}>
+                      <span className="text-student-body text-gray-600">Score:</span>
+                      <span className="font-bold text-sm" style={{ color: 'var(--color-primary)' }}>
                         {test.result.score}/{test.result.total}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Accuracy:</span>
-                      <span>{Math.round(test.result.accuracy)}%</span>
+                      <span className="text-student-body text-gray-600">Accuracy:</span>
+                      <span className="text-sm">{Math.round(test.result.accuracy)}%</span>
                     </div>
                   </div>
                 )}
@@ -123,8 +123,8 @@ export default function StudentTestsPage() {
                     </Button>
                   )}
                   {activeTab === 'scheduled' && (
-                    <div className="flex-1 text-center p-2 bg-gray-100 rounded-base">
-                      <p className="text-sm text-gray-600">
+                    <div className="flex-1 text-center p-2 bg-gray-100 rounded-xl">
+                      <p className="text-student-muted">
                         {test.scheduled_at
                           ? `Starts ${new Date(test.scheduled_at).toLocaleString()}`
                           : 'Coming Soon'}

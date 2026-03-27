@@ -100,32 +100,32 @@ export default function StudentResultsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold text-[var(--primary-color)]">{performance.totalTests}</p>
-                <p className="text-sm text-gray-500">Tests Taken</p>
+                <p className="text-2xl md:text-3xl font-bold text-[var(--primary-color)]">{performance.totalTests}</p>
+                <p className="text-student-muted mt-1">Tests Taken</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold text-green-600">{performance.passedTests}</p>
-                <p className="text-sm text-gray-500">Passed</p>
+                <p className="text-2xl md:text-3xl font-bold text-green-600">{performance.passedTests}</p>
+                <p className="text-student-muted mt-1">Passed</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className="text-3xl font-bold">{performance.averagePercentage.toFixed(1)}%</p>
-                <p className="text-sm text-gray-500">Avg Score</p>
+                <p className="text-2xl md:text-3xl font-bold">{performance.averagePercentage.toFixed(1)}%</p>
+                <p className="text-student-muted mt-1">Avg Score</p>
               </div>
             </Card>
             <Card>
               <div className="p-4 text-center">
-                <p className={`text-3xl font-bold ${
+                <p className={`text-2xl md:text-3xl font-bold ${
                   performance.improvementTrend === 'improving' ? 'text-green-600' :
                   performance.improvementTrend === 'declining' ? 'text-red-600' : 'text-gray-600'
                 }`}>
                   {performance.improvementTrend === 'improving' ? '↑' :
                    performance.improvementTrend === 'declining' ? '↓' : '→'}
                 </p>
-                <p className="text-sm text-gray-500 capitalize">{performance.improvementTrend}</p>
+                <p className="text-student-muted mt-1 capitalize">{performance.improvementTrend}</p>
               </div>
             </Card>
           </div>
@@ -134,14 +134,14 @@ export default function StudentResultsPage() {
         {/* Subject Performance */}
         {performance && Object.keys(performance.subjectPerformance).length > 0 && (
           <Card>
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Subject-wise Performance</h3>
+            <div className="p-4 md:p-6">
+              <h3 className="text-student-subheading mb-4">Subject-wise Performance</h3>
               <div className="space-y-3">
                 {Object.entries(performance.subjectPerformance).map(([subject, data]) => (
-                  <div key={subject} className="flex items-center gap-4">
-                    <div className="w-32 text-sm font-medium">{subject}</div>
+                  <div key={subject} className="flex items-center gap-3">
+                    <div className="w-28 text-sm font-medium truncate">{subject}</div>
                     <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${
                             data.avgPercentage >= 70 ? 'bg-green-500' :
@@ -151,10 +151,10 @@ export default function StudentResultsPage() {
                         />
                       </div>
                     </div>
-                    <div className="w-20 text-sm text-right">
+                    <div className="w-16 text-xs text-right font-medium">
                       {data.avgPercentage.toFixed(0)}%
                     </div>
-                    <div className="w-24 text-sm text-gray-500">
+                    <div className="w-20 text-student-muted hidden sm:block">
                       {data.passed}/{data.total} passed
                     </div>
                   </div>
@@ -166,45 +166,45 @@ export default function StudentResultsPage() {
 
         {/* Results List */}
         <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Test History</h3>
+          <div className="p-4 md:p-6">
+            <h3 className="text-student-subheading mb-4">Test History</h3>
             {results.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No test results yet.</p>
+              <p className="text-center text-student-muted py-8">No test results yet.</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-500">Test</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500">Subject</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500">Score</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500">Percentage</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500">Time</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500">Date</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500">Actions</th>
+                      <th className="text-left py-3 px-3 font-medium text-gray-500">Test</th>
+                      <th className="text-left py-3 px-3 font-medium text-gray-500">Subject</th>
+                      <th className="text-left py-3 px-3 font-medium text-gray-500">Score</th>
+                      <th className="text-left py-3 px-3 font-medium text-gray-500">Percentage</th>
+                      <th className="text-left py-3 px-3 font-medium text-gray-500">Status</th>
+                      <th className="text-left py-3 px-3 font-medium text-gray-500 hidden md:table-cell">Time</th>
+                      <th className="text-left py-3 px-3 font-medium text-gray-500 hidden sm:table-cell">Date</th>
+                      <th className="text-left py-3 px-3 font-medium text-gray-500">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {results.map(result => (
                       <tr key={result.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium">{result.tests?.title}</td>
-                        <td className="py-3 px-4">{result.tests?.subjects?.name || 'N/A'}</td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-3 font-medium">{result.tests?.title}</td>
+                        <td className="py-3 px-3 text-gray-600">{result.tests?.subjects?.name || 'N/A'}</td>
+                        <td className="py-3 px-3">
                           <span className="font-semibold">{result.score}</span>
                           <span className="text-gray-400">/{result.total_marks}</span>
                         </td>
-                        <td className="py-3 px-4">{result.percentage?.toFixed(1)}%</td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-3">{result.percentage?.toFixed(1)}%</td>
+                        <td className="py-3 px-3">
                           <Badge variant={result.status === 'passed' ? 'success' : 'danger'}>
                             {result.status}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-sm">
+                        <td className="py-3 px-3 hidden md:table-cell">
                           {result.time_taken_seconds ? formatTime(result.time_taken_seconds) : 'N/A'}
                         </td>
-                        <td className="py-3 px-4 text-sm">{formatDate(result.submitted_at)}</td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-3 hidden sm:table-cell">{formatDate(result.submitted_at)}</td>
+                        <td className="py-3 px-3">
                           <Button
                             size="sm"
                             variant="outline"
