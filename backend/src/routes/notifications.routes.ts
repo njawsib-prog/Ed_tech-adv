@@ -20,11 +20,11 @@ const router = Router();
 router.use(authenticate, requireAdmin);
 
 // Notifications
-router.get('/notifications', getNotifications);
-router.post('/notifications', createNotification);
-router.put('/notifications/:id', updateNotification);
-router.delete('/notifications/:id', deleteNotification);
-router.post('/notifications/:id/broadcast', broadcastNotification);
+router.get('/', getNotifications);
+router.post('/', createNotification);
+router.put('/:id', updateNotification);
+router.delete('/:id', deleteNotification);
+router.post('/:id/broadcast', broadcastNotification);
 
 // Complaints
 router.get('/complaints', getComplaints);

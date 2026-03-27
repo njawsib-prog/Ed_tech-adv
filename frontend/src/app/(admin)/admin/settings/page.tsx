@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Spinner from '@/components/ui/Spinner';
 import PageWrapper from '@/components/layout/PageWrapper';
+import Switch from '@/components/ui/Switch';
 
 interface InstituteConfig {
   id: string;
@@ -319,15 +320,10 @@ export default function SettingsPage() {
                       <p className="font-medium text-gray-900">{feature.label}</p>
                       <p className="text-sm text-gray-500">{feature.desc}</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={!!settings[feature.key]}
-                        onChange={(e) => setSettings({ ...settings, [feature.key]: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary-color)]"></div>
-                    </label>
+                    <Switch
+                      checked={!!settings[feature.key]}
+                      onChange={(checked) => setSettings({ ...settings, [feature.key]: checked })}
+                    />
                   </div>
                 ))}
               </div>

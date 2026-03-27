@@ -23,7 +23,7 @@ export const getStudyMaterials = async (req: AuthRequest, res: Response) => {
         title,
         description,
         type,
-        file_url,
+        url,
         file_size,
         created_at,
         subjects (
@@ -81,7 +81,7 @@ export const getMaterialById = async (req: AuthRequest, res: Response) => {
         title,
         description,
         type,
-        file_url,
+        url,
         file_size,
         content,
         created_at,
@@ -126,7 +126,7 @@ export const getMaterialsBySubject = async (req: AuthRequest, res: Response) => 
         title,
         description,
         type,
-        file_url,
+        url,
         file_size,
         created_at
       `)

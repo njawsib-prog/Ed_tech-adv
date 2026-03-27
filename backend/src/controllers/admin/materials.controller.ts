@@ -31,7 +31,7 @@ export const getMaterials = async (req: AuthRequest, res: Response) => {
         title,
         description,
         type,
-        file_url,
+        url,
         file_size,
         is_published,
         created_at,
@@ -104,7 +104,7 @@ export const getMaterialById = async (req: AuthRequest, res: Response) => {
         title,
         description,
         type,
-        file_url,
+        url,
         file_size,
         content,
         is_published,
@@ -153,6 +153,7 @@ export const createMaterial = async (req: AuthRequest, res: Response) => {
       description,
       type,
       subjectId,
+      url,
       fileUrl,
       fileSize,
       content,
@@ -163,6 +164,9 @@ export const createMaterial = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Title, subject, and type are required' });
     }
 
+    // Support both url and fileUrl field names
+    const fileUrlValue = url || fileUrl;
+
     const { data, error } = await supabaseAdmin
       .from('study_materials')
       .insert({
@@ -171,7 +175,7 @@ export const createMaterial = async (req: AuthRequest, res: Response) => {
         description,
         type,
         subject_id: subjectId,
-        file_url: fileUrl,
+        url: fileUrlValue,
         file_size: fileSize,
         content,
         is_published: isPublished,
@@ -210,6 +214,7 @@ export const updateMaterial = async (req: AuthRequest, res: Response) => {
       description,
       type,
       subjectId,
+      url,
       fileUrl,
       fileSize,
       content,
@@ -221,7 +226,9 @@ export const updateMaterial = async (req: AuthRequest, res: Response) => {
     if (description !== undefined) updateData.description = description;
     if (type !== undefined) updateData.type = type;
     if (subjectId !== undefined) updateData.subject_id = subjectId;
-    if (fileUrl !== undefined) updateData.file_url = fileUrl;
+    // Support both url and fileUrl field names
+    const fileUrlValue = url !== undefined ? url : fileUrl;
+    if (fileUrlValue !== undefined) updateData.url = fileUrlValue;
     if (fileSize !== undefined) updateData.file_size = fileSize;
     if (content !== undefined) updateData.content = content;
     if (isPublished !== undefined) updateData.is_published = isPublished;
@@ -318,7 +325,7 @@ export const getMaterialsBySubject = async (req: AuthRequest, res: Response) => 
         id,
         title,
         type,
-        file_url,
+        url,
         file_size,
         is_published
       `)
