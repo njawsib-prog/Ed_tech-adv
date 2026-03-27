@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import AdminLayout from '@/components/layout/AdminLayout';
 import PageWrapper from '@/components/layout/PageWrapper';
 import { Card, Spinner, Badge } from '@/components/ui';
 import { apiClient } from '@/lib/apiClient';
@@ -35,17 +34,14 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <AdminLayout title="Dashboard">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Spinner size="lg" />
-        </div>
-      </AdminLayout>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Spinner size="lg" />
+      </div>
     );
   }
 
   return (
-    <AdminLayout title="Dashboard">
-      <PageWrapper title="Dashboard Overview">
+    <PageWrapper title="Dashboard Overview">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
@@ -140,6 +136,5 @@ export default function AdminDashboard() {
           )}
         </Card>
       </PageWrapper>
-    </AdminLayout>
   );
 }

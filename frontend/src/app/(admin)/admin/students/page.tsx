@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import AdminLayout from '@/components/layout/AdminLayout';
 import PageWrapper from '@/components/layout/PageWrapper';
 import { Table, Button, Input, Modal, Badge, Spinner } from '@/components/ui';
 import { apiClient } from '@/lib/apiClient';
@@ -192,8 +191,7 @@ export default function StudentsPage() {
   ];
 
   return (
-    <AdminLayout title="Students">
-      <PageWrapper
+    <PageWrapper
         title="Student Management"
         actions={
           <Button onClick={() => setShowAddModal(true)}>Add Student</Button>
@@ -338,6 +336,5 @@ export default function StudentsPage() {
           </div>
         </Modal>
       </PageWrapper>
-    </AdminLayout>
   );
 }

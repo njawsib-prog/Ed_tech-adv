@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import AdminLayout from '@/components/layout/AdminLayout';
 import PageWrapper from '@/components/layout/PageWrapper';
 import { Card, Button, Modal, Input, Badge, Spinner } from '@/components/ui';
 import { apiClient } from '@/lib/apiClient';
@@ -135,8 +134,7 @@ export default function CoursesPage() {
   };
 
   return (
-    <AdminLayout title="Courses">
-      <PageWrapper
+    <PageWrapper
         title="Course Management"
         actions={<Button onClick={() => setShowModal(true)}>Create Course</Button>}
       >
@@ -325,6 +323,5 @@ export default function CoursesPage() {
           </div>
         </Modal>
       </PageWrapper>
-    </AdminLayout>
   );
 }
