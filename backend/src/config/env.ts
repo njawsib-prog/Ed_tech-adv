@@ -4,20 +4,20 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 /**
- * Critical environment variables that must be present in production.
+ * Required environment variables that must be present in production.
  * In non-production environments, missing these will trigger SAFE_MODE.
  */
-const CRITICAL_VARIABLES = [
+const requiredEnv = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
   'JWT_SECRET',
 ];
 
 /**
- * All required environment variables (critical + optional but commonly needed)
+ * All environment variables to check (requiredEnv + optional but commonly needed)
  */
-const ALL_VARIABLES = [
-  ...CRITICAL_VARIABLES,
+const allEnv = [
+  ...requiredEnv,
   'SUPABASE_ANON_KEY',
   'REDIS_HOST',
   'REDIS_PORT',
@@ -37,7 +37,7 @@ function isProduction(): boolean {
 /**
  * Validate environment variables and return missing ones
  */
-function getMissingVariables(variables: string[]): string[] {
+function getMissingEnv(variables: string[]): string[] {
   return variables.filter((name) => !process.env[name] || process.env[name] === '');
 }
 
@@ -47,54 +47,54 @@ function getMissingVariables(variables: string[]): string[] {
 export interface AppConfig {
   // Environment
   isProduction: boolean;
-  isSafeMode: boolean;
+  SAFE_MODE: boolean;
   nodeEnv: string;
-  
+
   // Server
   port: number;
-  
+
   // Supabase
   supabaseUrl: string;
   supabaseAnonKey: string;
   supabaseServiceRoleKey: string;
-  
+
   // Redis
   redisHost: string | undefined;
   redisPort: number;
   redisPassword: string | undefined;
-  
+
   // JWT
   jwtSecret: string;
   jwtExpiresIn: string;
-  
+
   // Frontend
   frontendUrl: string;
-  
+
   // Feature flags
   enableRegistration: boolean;
   enableEmailNotifications: boolean;
-  
+
   // Email (optional)
   emailFrom: string | undefined;
   smtpHost: string | undefined;
   smtpPort: string | undefined;
   smtpUser: string | undefined;
   smtpPass: string | undefined;
-  
+
   // Logging
-  missingVariables: string[];
+  missingEnv: string[];
   safeModeReason: string | null;
 }
 
 // Determine if we should enable Safe Mode
-const missingCritical = getMissingVariables(CRITICAL_VARIABLES);
-const shouldEnableSafeMode = missingCritical.length > 0 && !isProduction();
+const missingEnvList = getMissingEnv(requiredEnv);
+export const SAFE_MODE = missingEnvList.length > 0 && !isProduction();
 
 // Build the configuration object
 const config: AppConfig = {
   // Environment
   isProduction: isProduction(),
-  isSafeMode: shouldEnableSafeMode,
+  SAFE_MODE: SAFE_MODE,
   nodeEnv: process.env.NODE_ENV || 'development',
   
   // Server
@@ -111,7 +111,7 @@ const config: AppConfig = {
   redisPassword: process.env.REDIS_PASSWORD,
   
   // JWT
-  jwtSecret: process.env.JWT_SECRET || 'dev-secret-do-not-use-in-production',
+  jwtSecret: process.env.JWT_SECRET || (SAFE_MODE ? 'dev-secret-fallback' : ''),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   
   // Frontend
@@ -129,9 +129,9 @@ const config: AppConfig = {
   smtpPass: process.env.SMTP_PASS,
   
   // Logging
-  missingVariables: missingCritical,
-  safeModeReason: shouldEnableSafeMode 
-    ? `Missing critical variables: ${missingCritical.join(', ')}` 
+  missingEnv: missingEnvList,
+  safeModeReason: SAFE_MODE
+    ? `Missing required env: ${missingEnvList.join(', ')}`
     : null,
 };
 
@@ -139,39 +139,47 @@ const config: AppConfig = {
 // ======================
 
 function logStartupBanner(): void {
+  const mode = config.SAFE_MODE ? 'SAFE MODE' : 'STRICT MODE';
+  const status = config.SAFE_MODE ? '⚠️' : '✓';
+
   const banner = `
 ╔══════════════════════════════════════════════════════════════════════╗
 ║                    EdTech Backend - Startup Check                     ║
 ╠══════════════════════════════════════════════════════════════════════╣
 ║  Environment: ${config.nodeEnv.padEnd(57)}║
-║  Safe Mode:  ${config.isSafeMode ? 'ENABLED ⚠️' : 'DISABLED ✓'.padEnd(52)}║
+║  Mode:        ${mode.padEnd(57)}${status}  ║
 ╚══════════════════════════════════════════════════════════════════════╝
 `;
   console.log(banner);
-  
-  if (config.isSafeMode) {
-    console.warn('⚠️  WARNING: Running in SAFE MODE with mock services');
-    console.warn('⚠️  This is intended for development/preview only');
-    console.warn(`⚠️  Missing critical variables: ${config.missingVariables.join(', ')}`);
-    console.warn('⚠️  Data will NOT be persisted (in-memory storage)');
+
+  if (config.SAFE_MODE) {
+    console.warn('⚠️  SAFE MODE ENABLED');
+    console.warn('⚠️  Running with mock services for development');
+    console.warn(`⚠️  Missing required env: ${config.missingEnv.join(', ')}`);
+    console.warn('⚠️  Data will NOT be persisted (in-memory storage only)');
     console.warn('⚠️  Do NOT use in production!');
+    console.log('');
+  } else {
+    console.log('✓ STRICT MODE ENABLED');
+    console.log('✓ All required environment variables are configured');
+    console.log('');
   }
-  
+
   // List all configured variables
-  console.log('\n📋 Environment Configuration:');
+  console.log('📋 Environment Configuration:');
   console.log(`   - PORT: ${config.port}`);
   console.log(`   - NODE_ENV: ${config.nodeEnv}`);
   console.log(`   - SUPABASE_URL: ${config.supabaseUrl ? '✓ configured' : '✗ missing'}`);
   console.log(`   - SUPABASE_SERVICE_ROLE_KEY: ${config.supabaseServiceRoleKey ? '✓ configured' : '✗ missing'}`);
   console.log(`   - JWT_SECRET: ${config.jwtSecret ? '✓ configured' : '✗ missing'}`);
   console.log(`   - REDIS_HOST: ${config.redisHost || '✗ not configured'}`);
-  
+
   // Show all missing variables if any
-  const allMissing = getMissingVariables(ALL_VARIABLES);
+  const allMissing = getMissingEnv(allEnv);
   if (allMissing.length > 0) {
-    console.log(`\n⚠️  Missing optional variables: ${allMissing.join(', ')}`);
+    console.log(`\n⚠️  Missing optional env: ${allMissing.join(', ')}`);
   }
-  
+
   console.log(''); // Empty line
 }
 
@@ -182,22 +190,22 @@ function validateProduction(): void {
   if (!config.isProduction) {
     return; // Skip validation in non-production
   }
-  
-  const missing = getMissingVariables(CRITICAL_VARIABLES);
-  
+
+  const missing = getMissingEnv(requiredEnv);
+
   if (missing.length > 0) {
     console.error('═══════════════════════════════════════════════════════════════════');
     console.error('                    FATAL ERROR - PRODUCTION MODE');
     console.error('═══════════════════════════════════════════════════════════════════');
     console.error('');
-    console.error('The following critical environment variables are missing:');
+    console.error('The following required environment variables are missing:');
     console.error('');
     missing.forEach((varName) => {
       console.error(`  ✗ ${varName}`);
     });
     console.error('');
-    console.error('In production mode, all critical variables MUST be configured.');
-    console.error('Please set these variables in your Railway/Docker environment.');
+    console.error('In production mode, all required variables MUST be configured.');
+    console.error('STRICT MODE requires all critical dependencies to be available.');
     console.error('');
     console.error('To fix:');
     console.error('  1. Open your Railway project settings');

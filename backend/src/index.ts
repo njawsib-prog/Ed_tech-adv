@@ -1,5 +1,5 @@
 // Import config first - this handles environment validation and safe mode detection
-import config from './config/env';
+import config, { SAFE_MODE } from './config/env';
 
 import express from 'express';
 import cors from 'cors';
@@ -40,11 +40,11 @@ app.use(cookieParser());
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: Date.now(),
     environment: config.nodeEnv,
-    safeMode: config.isSafeMode,
+    SAFE_MODE: SAFE_MODE,
   });
 });
 
@@ -75,13 +75,13 @@ app.use((req, res) => {
 // Start server
 const server = app.listen(config.port, () => {
   console.log(`\n🚀 Server running on port ${config.port}`);
-  
-  // Start queue workers if not in safe mode and Redis is configured
-  if (!config.isSafeMode && config.redisHost) {
+
+  // Start queue workers if not in SAFE MODE and Redis is configured
+  if (!SAFE_MODE && config.redisHost) {
     console.log('[Server] Starting queue workers...');
     startAllWorkers();
-  } else if (config.isSafeMode) {
-    console.log('[Server] Queue workers running in mock mode (Safe Mode)');
+  } else if (SAFE_MODE) {
+    console.log('[Server] Queue workers running in mock mode (SAFE MODE)');
   } else {
     console.log('[Server] Redis not configured, skipping queue workers');
   }
@@ -90,21 +90,21 @@ const server = app.listen(config.port, () => {
 // Graceful shutdown
 async function gracefulShutdown(signal: string) {
   console.log(`\n[Server] ${signal} received, shutting down gracefully...`);
-  
+
   // Stop accepting new connections
   server.close(() => {
     console.log('[Server] HTTP server closed');
   });
-  
+
   // Stop queue workers
-  if (!config.isSafeMode && config.redisHost) {
+  if (!SAFE_MODE && config.redisHost) {
     await stopAllWorkers();
     await closeQueues();
-  } else if (config.isSafeMode) {
+  } else if (SAFE_MODE) {
     console.log('[Server] Closing mock queues...');
     await closeQueues();
   }
-  
+
   console.log('[Server] Graceful shutdown complete');
   process.exit(0);
 }

@@ -1,4 +1,4 @@
-import config from '../config/env';
+import config, { SAFE_MODE } from '../config/env';
 
 // Queue names
 export const QUEUE_NAMES = {
@@ -56,11 +56,11 @@ let testAutoSubmitQueue: any;
 let notificationQueue: any;
 let emailQueue: any;
 
-if (config.isSafeMode) {
-  // Use mock queues when in Safe Mode
+if (SAFE_MODE) {
+  // Use mock queues when in SAFE MODE
   const { MockQueue } = require('./mockQueue');
-  
-  console.log('[Queue] Using mock queues (Safe Mode)');
+
+  console.log('[Queue] Using mock queues (SAFE MODE)');
   
   testPublishQueue = new MockQueue(QUEUE_NAMES.TEST_PUBLISH, {
     defaultJobOptions: {
