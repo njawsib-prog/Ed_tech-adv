@@ -9,11 +9,6 @@ interface AuthRequest extends Request {
   };
 }
 
-const VALID_TARGET_TYPES = ['all', 'course', 'student'] as const;
-const VALID_CATEGORIES = ['announcement', 'test_alert', 'result', 'admin_message'] as const;
-
-type TargetType = typeof VALID_TARGET_TYPES[number];
-type Category = typeof VALID_CATEGORIES[number];
 
 // Get all notifications
 export const getNotifications = async (req: AuthRequest, res: Response) => {
@@ -64,32 +59,36 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
   try {
     console.log("REQ BODY:", req.body);
     const adminId = req.user?.id;
-    const { title, message, category, targetType, targetId } = req.body;
+    const instituteId = req.user?.instituteId;
+    const { title, message, type, targetAudience, actionUrl, scheduledAt } = req.body;
 
     if (!title || !message) {
       return res.status(400).json({ error: 'Title and message are required' });
     }
 
-    const validTargetTypes: readonly string[] = VALID_TARGET_TYPES;
-    if (targetType && !validTargetTypes.includes(targetType)) {
-      console.warn(`createNotification: invalid targetType "${targetType}", defaulting to "all"`);
-    }
-    const resolvedTargetType: TargetType = validTargetTypes.includes(targetType) ? targetType : 'all';
+    const VALID_TYPES = ['info', 'warning', 'success', 'error'] as const;
+    const VALID_AUDIENCES = ['all', 'students', 'admins'] as const;
 
-    const validCategories: readonly string[] = VALID_CATEGORIES;
-    if (category && !validCategories.includes(category)) {
-      console.warn(`createNotification: invalid category "${category}", defaulting to "announcement"`);
+    if (type && !VALID_TYPES.includes(type)) {
+      console.warn(`createNotification: invalid type "${type}", defaulting to "info"`);
     }
-    const resolvedCategory: Category = validCategories.includes(category) ? category : 'announcement';
+    if (targetAudience && !VALID_AUDIENCES.includes(targetAudience)) {
+      console.warn(`createNotification: invalid targetAudience "${targetAudience}", defaulting to "all"`);
+    }
+
+    const resolvedType = VALID_TYPES.includes(type) ? type : 'info';
+    const resolvedAudience = VALID_AUDIENCES.includes(targetAudience) ? targetAudience : 'all';
 
     const { data, error } = await supabaseAdmin
       .from('notifications')
       .insert({
         title,
         message,
-        category: resolvedCategory,
-        target_type: resolvedTargetType,
-        target_id: targetId || null,
+        type: resolvedType,
+        target_audience: resolvedAudience,
+        action_url: actionUrl || null,
+        scheduled_at: scheduledAt || null,
+        institute_id: instituteId,
         created_by: adminId
       })
       .select()
