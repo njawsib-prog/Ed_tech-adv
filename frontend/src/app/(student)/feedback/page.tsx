@@ -39,7 +39,9 @@ export default function FeedbackPage() {
     setLoading(true);
     try {
       const response = await apiClient.get('/student/feedback');
-      setFeedbackHistory(response.data || []);
+      // Handle standardized response - use type assertion for compatibility
+      const responseData = (response.data as any).success ? (response.data as any).data : response.data;
+      setFeedbackHistory(responseData || []);
     } catch (error) {
       console.error('Error fetching feedback:', error);
     } finally {

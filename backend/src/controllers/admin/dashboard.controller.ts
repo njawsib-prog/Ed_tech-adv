@@ -29,14 +29,14 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       .select('*', { count: 'exact', head: true })
       .gte('submitted_at', weekAgo.toISOString());
 
-    // Get average score this week
+    // Get average score this week - use percentage field
     const { data: avgScoreData } = await supabaseAdmin
       .from('results')
-      .select('accuracy')
+      .select('percentage')
       .gte('submitted_at', weekAgo.toISOString());
 
     const avgScore = avgScoreData && avgScoreData.length > 0
-      ? avgScoreData.reduce((sum, r) => sum + (r.accuracy || 0), 0) / avgScoreData.length
+      ? avgScoreData.reduce((sum, r) => sum + (r.percentage || 0), 0) / avgScoreData.length
       : 0;
 
     // Get recent activity
@@ -47,15 +47,18 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       .limit(20);
 
     res.json({
-      totalStudents: totalStudents || 0,
-      activeStudents: activeStudents || 0,
-      testsThisWeek: testsThisWeek || 0,
-      avgScore: Math.round(avgScore * 10) / 10,
-      recentActivity: recentActivity || [],
+      success: true,
+      data: {
+        totalStudents: totalStudents || 0,
+        activeStudents: activeStudents || 0,
+        testsThisWeek: testsThisWeek || 0,
+        avgScore: Math.round(avgScore * 10) / 10,
+        recentActivity: recentActivity || [],
+      },
     });
   } catch (error) {
     console.error('Get dashboard stats error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 

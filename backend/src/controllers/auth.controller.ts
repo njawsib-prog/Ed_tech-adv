@@ -21,7 +21,7 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
     const { email, password } = req.body;
 
     if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
+      res.status(400).json({ success: false, error: 'Email and password are required' });
       return;
     }
 
@@ -34,7 +34,7 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
       .single();
 
     if (error || !admin) {
-      res.status(401).json({ error: 'Invalid credentials' });
+      res.status(401).json({ success: false, error: 'Invalid credentials' });
       return;
     }
 
@@ -42,7 +42,7 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
     const isValidPassword = await bcrypt.compare(password, admin.password_hash);
 
     if (!isValidPassword) {
-      res.status(401).json({ error: 'Invalid credentials' });
+      res.status(401).json({ success: false, error: 'Invalid credentials' });
       return;
     }
 
@@ -68,17 +68,20 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
     });
 
     res.json({
-      user: {
-        id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-        avatar_url: admin.avatar_url,
+      success: true,
+      data: {
+        user: {
+          id: admin.id,
+          name: admin.name,
+          email: admin.email,
+          role: admin.role,
+          avatar_url: admin.avatar_url,
+        },
       },
     });
   } catch (error) {
     console.error('Admin login error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -88,7 +91,7 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
     const { email, password } = req.body;
 
     if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
+      res.status(400).json({ success: false, error: 'Email and password are required' });
       return;
     }
 
@@ -101,7 +104,7 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
       .single();
 
     if (error || !student) {
-      res.status(401).json({ error: 'Invalid credentials' });
+      res.status(401).json({ success: false, error: 'Invalid credentials' });
       return;
     }
 
@@ -109,7 +112,7 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
     const isValidPassword = await bcrypt.compare(password, student.password_hash);
 
     if (!isValidPassword) {
-      res.status(401).json({ error: 'Invalid credentials' });
+      res.status(401).json({ success: false, error: 'Invalid credentials' });
       return;
     }
 
@@ -135,18 +138,21 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
     });
 
     res.json({
-      user: {
-        id: student.id,
-        name: student.name,
-        email: student.email,
-        role: 'student',
-        course_id: student.course_id,
-        avatar_url: student.avatar_url,
+      success: true,
+      data: {
+        user: {
+          id: student.id,
+          name: student.name,
+          email: student.email,
+          role: 'student',
+          course_id: student.course_id,
+          avatar_url: student.avatar_url,
+        },
       },
     });
   } catch (error) {
     console.error('Student login error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -157,7 +163,7 @@ export const logout = (req: Request, res: Response): void => {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   });
-  res.json({ message: 'Logged out successfully' });
+  res.json({ success: true, message: 'Logged out successfully' });
 };
 
 // Get current user
@@ -166,7 +172,7 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
     const user = (req as any).user;
 
     if (!user) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ success: false, error: 'Not authenticated' });
       return;
     }
 
@@ -179,7 +185,7 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
         .single();
 
       if (error || !data) {
-        res.status(404).json({ error: 'User not found' });
+        res.status(404).json({ success: false, error: 'User not found' });
         return;
       }
       userData = data;
@@ -191,16 +197,16 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
         .single();
 
       if (error || !data) {
-        res.status(404).json({ error: 'User not found' });
+        res.status(404).json({ success: false, error: 'User not found' });
         return;
       }
       userData = { ...data, role: 'student' };
     }
 
-    res.json({ user: userData });
+    res.json({ success: true, data: { user: userData } });
   } catch (error) {
     console.error('Get current user error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -211,6 +217,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 
     // Always return success message for security (don't reveal if email exists)
     res.json({
+      success: true,
       message: 'If this email exists, a reset link has been sent.',
     });
 
@@ -221,6 +228,6 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     // For now, we just return success
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };

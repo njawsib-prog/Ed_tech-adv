@@ -112,19 +112,22 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
       .range(offset, offset + Number(limit) - 1);
 
     if (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, error: error.message });
       return;
     }
 
     res.json({
-      students: data || [],
-      total: count || 0,
-      page: Number(page),
-      limit: Number(limit),
+      success: true,
+      data: {
+        students: data || [],
+        total: count || 0,
+        page: Number(page),
+        limit: Number(limit),
+      },
     });
   } catch (error) {
     console.error('Get students error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -134,7 +137,7 @@ export const createStudent = async (req: StudentRequest, res: Response): Promise
     const { name, email, password, course_id, branch_id } = req.body as any;
 
     if (!name || !email || !password || !course_id) {
-      res.status(400).json({ error: 'All fields are required' });
+      res.status(400).json({ success: false, error: 'All fields are required' });
       return;
     }
 
@@ -146,7 +149,7 @@ export const createStudent = async (req: StudentRequest, res: Response): Promise
       .single();
 
     if (existing) {
-      res.status(400).json({ error: 'Email already exists' });
+      res.status(400).json({ success: false, error: 'Email already exists' });
       return;
     }
 
@@ -167,14 +170,14 @@ export const createStudent = async (req: StudentRequest, res: Response): Promise
       .single();
 
     if (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, error: error.message });
       return;
     }
 
-    res.status(201).json(data);
+    res.status(201).json({ success: true, data });
   } catch (error) {
     console.error('Create student error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -183,7 +186,7 @@ export const bulkUploadStudents = async (req: Request, res: Response): Promise<v
   try {
     const file = req.file;
     if (!file) {
-      res.status(400).json({ error: 'No file uploaded' });
+      res.status(400).json({ success: false, error: 'No file uploaded' });
       return;
     }
 
@@ -197,13 +200,13 @@ export const bulkUploadStudents = async (req: Request, res: Response): Promise<v
 
     // Validate header row (expecting 4 columns: name, email, password, course_id)
     if (rows.length < 1) {
-      res.status(400).json({ error: 'CSV file is empty' });
+      res.status(400).json({ success: false, error: 'CSV file is empty' });
       return;
     }
 
     const headerRow = rows[0];
     if (headerRow.length < 4) {
-      res.status(400).json({ error: 'Invalid CSV format. Expected: name, email, password, course_id' });
+      res.status(400).json({ success: false, error: 'Invalid CSV format. Expected: name, email, password, course_id' });
       return;
     }
 
@@ -287,10 +290,10 @@ export const bulkUploadStudents = async (req: Request, res: Response): Promise<v
 
     console.log(`[BulkUpload] Completed: ${results.success.length} successful, ${results.errors.length} errors`);
 
-    res.json(results);
+    res.json({ success: true, data: results });
   } catch (error) {
     console.error('Bulk upload error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -316,14 +319,14 @@ export const updateStudent = async (req: Request, res: Response): Promise<void> 
       .single();
 
     if (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, error: error.message });
       return;
     }
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Update student error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -339,14 +342,14 @@ export const deleteStudent = async (req: Request, res: Response): Promise<void> 
       .eq('id', id);
 
     if (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, error: error.message });
       return;
     }
 
-    res.json({ message: 'Student deactivated successfully' });
+    res.json({ success: true, message: 'Student deactivated successfully' });
   } catch (error) {
     console.error('Delete student error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 

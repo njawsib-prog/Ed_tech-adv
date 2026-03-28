@@ -50,7 +50,9 @@ export default function ComplaintsPage() {
     setLoading(true);
     try {
       const response = await apiClient.get('/student/complaints');
-      setComplaints(response.data || []);
+      // Handle standardized response - use type assertion for compatibility
+      const responseData = (response.data as any).success ? (response.data as any).data : response.data;
+      setComplaints(responseData || []);
     } catch (error) {
       console.error('Error fetching complaints:', error);
     } finally {
@@ -77,7 +79,9 @@ export default function ComplaintsPage() {
   const viewComplaint = async (id: string) => {
     try {
       const response = await apiClient.get(`/student/complaints/${id}`);
-      setSelectedComplaint(response.data);
+      // Handle standardized response - use type assertion for compatibility
+      const responseData = (response.data as any).success ? (response.data as any).data : response.data;
+      setSelectedComplaint(responseData);
       setShowDetailModal(true);
     } catch (error) {
       console.error('Error fetching complaint:', error);

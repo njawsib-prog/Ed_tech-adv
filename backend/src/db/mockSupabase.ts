@@ -80,22 +80,156 @@ class MockSupabaseClient {
       },
     ];
     
-    // Seed other common tables as empty arrays
-    const tables = [
-      'institutes', 'courses', 'modules', 'subjects', 'tests', 
+    // Seed other common tables as empty arrays with sample data
+    const tablesWithData: { [key: string]: any[] } = {
+      'institutes': [
+        {
+          id: uuidv4(),
+          name: 'Default Institute',
+          code: 'DEF',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      'branches': [
+        {
+          id: uuidv4(),
+          name: 'Main Campus',
+          location: 'New York, NY',
+          contact_number: '+1-555-0100',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      'courses': [
+        {
+          id: uuidv4(),
+          name: 'Computer Science Fundamentals',
+          code: 'CS101',
+          description: 'Introduction to Computer Science',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      'tests': [
+        {
+          id: uuidv4(),
+          title: 'Programming Basics Quiz',
+          description: 'Test your programming knowledge',
+          time_limit_mins: 30,
+          total_marks: 20,
+          passing_marks: 8,
+          is_active: true,
+          scheduled_at: null,
+          type: 'quiz',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      'questions': [
+        {
+          id: uuidv4(),
+          test_id: null, // Will be assigned
+          question_text: 'What is 2 + 2?',
+          option_a: '3',
+          option_b: '4',
+          option_c: '5',
+          option_d: '6',
+          correct_option: 'B',
+          order_index: 1,
+          marks: 1,
+          created_at: new Date().toISOString(),
+        },
+      ],
+      'results': [
+        {
+          id: uuidv4(),
+          student_id: null, // Will be assigned
+          test_id: null, // Will be assigned
+          score: 15,
+          total_marks: 20,
+          percentage: 75,
+          status: 'passed',
+          time_taken_seconds: 1200,
+          answers: [],
+          submitted_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        },
+      ],
+      'study_materials': [
+        {
+          id: uuidv4(),
+          title: 'Introduction to Algorithms',
+          description: 'Basic algorithms and data structures',
+          type: 'pdf',
+          url: '/materials/algorithms.pdf',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      'notifications': [
+        {
+          id: uuidv4(),
+          title: 'Welcome to EdTech Platform',
+          message: 'Welcome! Start your learning journey today.',
+          type: 'info',
+          target_audience: 'all',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: uuidv4(),
+          title: 'New Test Available',
+          message: 'A new test has been assigned to you.',
+          type: 'info',
+          target_audience: 'students',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      'notification_reads': [],
+      'test_assignments': [],
+      'complaints': [],
+      'feedback': [],
+      'settings': [
+        {
+          id: uuidv4(),
+          key: 'site_title',
+          value: 'EdTech Platform',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      'payments': [],
+      'attendance': [],
+      'activity_log': [],
+    };
+
+    // Set up all tables
+    const allTables = [
+      'institutes', 'branches', 'courses', 'modules', 'subjects', 'tests', 
       'questions', 'test_attempts', 'results', 'study_materials',
-      'notifications', 'complaints', 'feedback', 'settings'
+      'notifications', 'complaints', 'feedback', 'settings',
+      'payments', 'attendance', 'notification_reads', 'test_assignments', 'activity_log'
     ];
     
-    tables.forEach(table => {
+    allTables.forEach(table => {
       if (!this.storage[table]) {
-        this.storage[table] = [];
+        this.storage[table] = tablesWithData[table] || [];
       }
     });
-    
+
     console.log('[SAFE_MODE:DB] Seeded default data:');
     console.log('   - 1 admin user (admin@edtech.com / admin123)');
-    console.log('   - 1 student user (student@edtech.com / student123)');
+    console.log('   - 1 student user (student@edtech.com / student123');
+    console.log('   - Sample institutes, branches, courses, tests, questions');
+    console.log('   - Sample notifications, study materials');
   }
   
   /**
