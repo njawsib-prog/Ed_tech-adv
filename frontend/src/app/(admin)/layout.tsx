@@ -19,6 +19,8 @@ const pageTitles: Record<string, string> = {
   '/admin/feedback': 'Feedback',
   '/admin/settings': 'Settings',
   '/admin/payments': 'Payments & Revenue',
+  '/admin/branches': 'Branch Management',
+  '/admin/attendance': 'Attendance Management',
 };
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
@@ -33,7 +35,7 @@ export default function AdminRootLayout({ children }: { children: React.ReactNod
     if (!isLoginPage && !isLoading) {
       if (!user) {
         router.push('/admin/login');
-      } else if (user.role !== 'admin' && user.role !== 'super_admin') {
+      } else if (user.role !== 'admin' && user.role !== 'super_admin' && user.role !== 'branch_admin') {
         router.push('/');
       }
     }
@@ -52,7 +54,7 @@ export default function AdminRootLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+  if (!user || (user.role !== 'admin' && user.role !== 'super_admin' && user.role !== 'branch_admin')) {
     return null;
   }
 

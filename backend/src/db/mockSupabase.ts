@@ -475,9 +475,10 @@ function initializeMockStorage(): void {
   
   // Initialize empty tables
   const tables = [
-    'institutes', 'courses', 'modules', 'subjects', 'tests', 
+    'institutes', 'branches', 'courses', 'modules', 'subjects', 'tests', 
     'questions', 'test_attempts', 'results', 'study_materials',
-    'notifications', 'complaints', 'feedback', 'settings'
+    'notifications', 'complaints', 'feedback', 'settings',
+    'payments', 'attendance'
   ];
   
   tables.forEach(table => {

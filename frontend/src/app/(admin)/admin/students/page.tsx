@@ -12,10 +12,12 @@ interface Student {
   name: string;
   email: string;
   course_id: string;
+  branch_id: string;
   is_active: boolean;
   created_at: string;
   last_login: string | null;
   courses: { name: string } | null;
+  branches: { name: string } | null;
 }
 
 interface Course {
@@ -23,12 +25,19 @@ interface Course {
   name: string;
 }
 
+interface Branch {
+  id: string;
+  name: string;
+}
+
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -41,6 +50,7 @@ export default function StudentsPage() {
     email: '',
     password: '',
     course_id: '',
+    branch_id: '',
   });
   const [formLoading, setFormLoading] = useState(false);
 
@@ -55,6 +65,7 @@ export default function StudentsPage() {
         limit: '20',
         ...(search && { search }),
         ...(courseFilter && { course_id: courseFilter }),
+        ...(branchFilter && { branch_id: branchFilter }),
       });
 
       const response = await apiClient.get(`/admin/students?${params}`);
@@ -77,13 +88,23 @@ export default function StudentsPage() {
     }
   };
 
+  const fetchBranches = async () => {
+    try {
+      const response = await apiClient.get('/admin/branches');
+      setBranches(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch branches:', error);
+    }
+  };
+
   useEffect(() => {
     fetchCourses();
+    fetchBranches();
   }, []);
 
   useEffect(() => {
     fetchStudents();
-  }, [page, courseFilter]);
+  }, [page, courseFilter, branchFilter]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -105,7 +126,7 @@ export default function StudentsPage() {
       await apiClient.post('/admin/students', formData);
       toast.success('Student created successfully');
       setShowAddModal(false);
-      setFormData({ name: '', email: '', password: '', course_id: '' });
+      setFormData({ name: '', email: '', password: '', course_id: '', branch_id: '' });
       fetchStudents();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create student');
@@ -142,6 +163,11 @@ export default function StudentsPage() {
     {
       key: 'email',
       label: 'Email',
+    },
+    {
+      key: 'branch',
+      label: 'Branch',
+      render: (student: Student) => student.branches?.name || '-',
     },
     {
       key: 'course',
@@ -205,6 +231,20 @@ export default function StudentsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+          </div>
+          <div className="w-full sm:w-48">
+            <select
+              className="w-full px-3 py-2 border border-gray-300 rounded-base focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+            >
+              <option value="">All Branches</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="w-full sm:w-48">
             <select
@@ -286,23 +326,43 @@ export default function StudentsPage() {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
               />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Course <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-base focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  value={formData.course_id}
-                  onChange={(e) => setFormData({ ...formData, course_id: e.target.value })}
-                  required
-                >
-                  <option value="">Select Course</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Branch <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-base focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    value={formData.branch_id}
+                    onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Course <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-base focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    value={formData.course_id}
+                    onChange={(e) => setFormData({ ...formData, course_id: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Course</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
             <div className="mt-6 flex justify-end space-x-3">

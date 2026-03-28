@@ -38,6 +38,10 @@ import {
   getNotificationPreferences,
   updateNotificationPreferences,
 } from '../controllers/student/profile.controller';
+import { getMyAttendance } from '../controllers/student/attendance.controller';
+import { getMyPayments } from '../controllers/student/payment.controller';
+import { getStreakInfo, updateStreak } from '../controllers/student/streak.controller';
+import { getLeaderboard } from '../controllers/leaderboard.controller';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { requireRole } from '../middleware/roleMiddleware';
 
@@ -91,5 +95,18 @@ router.get('/profile/activity', getActivity);
 router.delete('/profile', deleteAccount);
 router.get('/profile/notification-preferences', getNotificationPreferences);
 router.put('/profile/notification-preferences', updateNotificationPreferences);
+
+// Attendance
+router.get('/attendance', getMyAttendance);
+
+// Payments
+router.get('/payments', getMyPayments);
+
+// Streak
+router.get('/streak', getStreakInfo);
+router.post('/streak/update', updateStreak);
+
+// Leaderboard
+router.get('/leaderboard', getLeaderboard);
 
 export default router;

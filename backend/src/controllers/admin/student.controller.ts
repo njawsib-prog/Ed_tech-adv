@@ -82,12 +82,12 @@ function isValidEmail(email: string): boolean {
 // Get all students with filtering and pagination
 export const getStudents = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { search, course_id, status, page = 1, limit = 20 } = req.query;
+    const { search, course_id, branch_id, status, page = 1, limit = 20 } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
     let query = supabaseAdmin
       .from('students')
-      .select('id, name, email, course_id, is_active, created_at, last_login, courses(name)', { count: 'exact' });
+      .select('id, name, email, course_id, branch_id, is_active, created_at, last_login, courses(name), branches(name)', { count: 'exact' });
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -95,6 +95,10 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
 
     if (course_id) {
       query = query.eq('course_id', course_id);
+    }
+
+    if (branch_id) {
+      query = query.eq('branch_id', branch_id);
     }
 
     if (status === 'active') {
@@ -127,7 +131,7 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
 // Create a new student
 export const createStudent = async (req: StudentRequest, res: Response): Promise<void> => {
   try {
-    const { name, email, password, course_id } = req.body;
+    const { name, email, password, course_id, branch_id } = req.body as any;
 
     if (!name || !email || !password || !course_id) {
       res.status(400).json({ error: 'All fields are required' });
@@ -156,9 +160,10 @@ export const createStudent = async (req: StudentRequest, res: Response): Promise
         email,
         password_hash: passwordHash,
         course_id,
+        branch_id,
         is_active: true,
       })
-      .select('id, name, email, course_id, is_active, created_at')
+      .select('id, name, email, course_id, branch_id, is_active, created_at')
       .single();
 
     if (error) {
@@ -293,12 +298,13 @@ export const bulkUploadStudents = async (req: Request, res: Response): Promise<v
 export const updateStudent = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, email, course_id, is_active } = req.body;
+    const { name, email, course_id, branch_id, is_active } = req.body;
 
     const updateData: any = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (course_id) updateData.course_id = course_id;
+    if (branch_id) updateData.branch_id = branch_id;
     if (typeof is_active === 'boolean') updateData.is_active = is_active;
     updateData.updated_at = new Date().toISOString();
 
@@ -306,7 +312,7 @@ export const updateStudent = async (req: Request, res: Response): Promise<void> 
       .from('students')
       .update(updateData)
       .eq('id', id)
-      .select('id, name, email, course_id, is_active')
+      .select('id, name, email, course_id, branch_id, is_active')
       .single();
 
     if (error) {

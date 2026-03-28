@@ -13,10 +13,13 @@ interface NavItem {
 
 const adminNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/admin', icon: 'dashboard' },
+  { label: 'Branches', href: '/admin/branches', icon: 'branches' },
   { label: 'Students', href: '/admin/students', icon: 'students' },
   { label: 'Courses', href: '/admin/courses', icon: 'courses' },
+  { label: 'Attendance', href: '/admin/attendance', icon: 'attendance' },
   { label: 'Tests', href: '/admin/tests', icon: 'tests' },
   { label: 'Results', href: '/admin/results', icon: 'results' },
+  { label: 'Payments', href: '/admin/payments', icon: 'payments' },
   { label: 'Study Materials', href: '/admin/materials', icon: 'materials', feature: 'studyMaterial' },
   { label: 'Notifications', href: '/admin/notifications', icon: 'notifications' },
   { label: 'Complaints', href: '/admin/complaints', icon: 'complaints', feature: 'complaints' },
@@ -28,6 +31,9 @@ const studentNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
   { label: 'My Tests', href: '/tests', icon: 'tests' },
   { label: 'Results', href: '/results', icon: 'results' },
+  { label: 'Attendance', href: '/attendance', icon: 'attendance' },
+  { label: 'Leaderboard', href: '/leaderboard', icon: 'leaderboard' },
+  { label: 'Payments', href: '/payments', icon: 'payments' },
   { label: 'Courses', href: '/courses', icon: 'courses' },
   { label: 'Study Material', href: '/materials', icon: 'materials', feature: 'studyMaterial' },
   { label: 'Notifications', href: '/notifications', icon: 'notifications' },
@@ -110,6 +116,26 @@ export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
       profile: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+      branches: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ),
+      attendance: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+      ),
+      payments: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      leaderboard: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
         </svg>
       ),
     };
