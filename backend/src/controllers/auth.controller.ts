@@ -59,19 +59,17 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
       { expiresIn: JWT_EXPIRY } as any
     );
 
-    // Determine cookie options based on environment and origin
-    const origin = req.headers.origin;
-    const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+    // Determine cookie options based on environment
+    const isProduction = process.env.NODE_ENV === 'production';
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production' || !isLocalhost,
-      sameSite: (isLocalhost ? 'lax' : 'none') as 'lax' | 'none',
+      secure: isProduction,
+      sameSite: (isProduction ? 'none' : 'lax') as 'lax' | 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
 
     console.log('[Auth] Admin login successful - setting cookie with options:', {
-      origin,
-      isLocalhost,
+      isProduction,
       secure: cookieOptions.secure,
       sameSite: cookieOptions.sameSite,
       tokenPrefix: token.substring(0, 20) + '...'
@@ -142,19 +140,17 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
       { expiresIn: JWT_EXPIRY } as any
     );
 
-    // Determine cookie options based on environment and origin
-    const origin = req.headers.origin;
-    const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+    // Determine cookie options based on environment
+    const isProduction = process.env.NODE_ENV === 'production';
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production' || !isLocalhost,
-      sameSite: (isLocalhost ? 'lax' : 'none') as 'lax' | 'none',
+      secure: isProduction,
+      sameSite: (isProduction ? 'none' : 'lax') as 'lax' | 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
 
     console.log('[Auth] Student login successful - setting cookie with options:', {
-      origin,
-      isLocalhost,
+      isProduction,
       secure: cookieOptions.secure,
       sameSite: cookieOptions.sameSite,
       tokenPrefix: token.substring(0, 20) + '...'
@@ -184,18 +180,16 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
 
 // Logout
 export const logout = (req: Request, res: Response): void => {
-  // Determine cookie options based on environment and origin (must match login)
-  const origin = req.headers.origin;
-  const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+  // Determine cookie options based on environment (must match login)
+  const isProduction = process.env.NODE_ENV === 'production';
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production' || !isLocalhost,
-    sameSite: (isLocalhost ? 'lax' : 'none') as 'lax' | 'none',
+    secure: isProduction,
+    sameSite: (isProduction ? 'none' : 'lax') as 'lax' | 'none',
   };
 
   console.log('[Auth] Logout - clearing cookie with options:', {
-    origin,
-    isLocalhost,
+    isProduction,
     secure: cookieOptions.secure,
     sameSite: cookieOptions.sameSite,
   });
