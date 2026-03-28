@@ -55,7 +55,7 @@ export default function StudyMaterialsPage() {
       if (filters.type) params.append('type', filters.type);
       if (filters.search) params.append('search', filters.search);
 
-      const response = await apiClient.get(`/api/student/materials?${params}`);
+      const response = await apiClient.get(`/student/materials?${params}`);
       setMaterials(response.data || []);
     } catch (error) {
       console.error('Error fetching materials:', error);
@@ -66,7 +66,7 @@ export default function StudyMaterialsPage() {
 
   const fetchRecentMaterials = async () => {
     try {
-      const response = await apiClient.get('/api/student/materials/recent');
+      const response = await apiClient.get('/student/materials/recent');
       setRecentMaterials(response.data || []);
     } catch (error) {
       console.error('Error fetching recent materials:', error);
@@ -79,7 +79,7 @@ export default function StudyMaterialsPage() {
 
     // Log the view
     try {
-      await apiClient.get(`/api/student/materials/${material.id}`);
+      await apiClient.get(`/student/materials/${material.id}`);
     } catch (error) {
       console.error('Error logging material view:', error);
     }

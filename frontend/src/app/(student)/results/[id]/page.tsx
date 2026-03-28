@@ -58,7 +58,7 @@ export default function ResultDetailPage() {
 
   const fetchResult = async () => {
     try {
-      const response = await apiClient.get(`/api/student/results/${resultId}`);
+      const response = await apiClient.get(`/student/results/${resultId}`);
       setResult(response.data);
     } catch (error) {
       console.error('Error fetching result:', error);

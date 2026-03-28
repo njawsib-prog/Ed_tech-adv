@@ -74,7 +74,7 @@ export default function ComplaintsPage() {
       if (filters.status) params.append('status', filters.status);
       if (filters.category) params.append('category', filters.category);
 
-      const response = await apiClient.get<ComplaintsResponse>(`/api/admin/notifications/complaints?${params}`);
+      const response = await apiClient.get<ComplaintsResponse>(`/admin/notifications/complaints?${params}`);
       setComplaints(response.data.complaints || []);
       setTotalPages(response.data.pagination.totalPages);
     } catch (error) {
@@ -86,7 +86,7 @@ export default function ComplaintsPage() {
 
   const viewComplaint = async (id: string) => {
     try {
-      const response = await apiClient.get(`/api/admin/notifications/complaints/${id}`);
+      const response = await apiClient.get(`/admin/notifications/complaints/${id}`);
       setSelectedComplaint(response.data);
       setReplyStatus(response.data.status);
       setShowDetailModal(true);
@@ -100,7 +100,7 @@ export default function ComplaintsPage() {
     if (!selectedComplaint || !replyMessage.trim()) return;
     setReplying(true);
     try {
-      await apiClient.post(`/api/admin/notifications/complaints/${selectedComplaint.id}/reply`, {
+      await apiClient.post(`/admin/notifications/complaints/${selectedComplaint.id}/reply`, {
         message: replyMessage,
         updateStatus: replyStatus !== selectedComplaint.status ? replyStatus : undefined
       });

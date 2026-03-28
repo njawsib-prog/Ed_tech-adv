@@ -49,7 +49,7 @@ export default function ComplaintsPage() {
   const fetchComplaints = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/api/student/complaints');
+      const response = await apiClient.get('/student/complaints');
       setComplaints(response.data || []);
     } catch (error) {
       console.error('Error fetching complaints:', error);
@@ -62,7 +62,7 @@ export default function ComplaintsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await apiClient.post('/api/student/complaints', formData);
+      await apiClient.post('/student/complaints', formData);
       setShowModal(false);
       resetForm();
       fetchComplaints();
@@ -76,7 +76,7 @@ export default function ComplaintsPage() {
 
   const viewComplaint = async (id: string) => {
     try {
-      const response = await apiClient.get(`/api/student/complaints/${id}`);
+      const response = await apiClient.get(`/student/complaints/${id}`);
       setSelectedComplaint(response.data);
       setShowDetailModal(true);
     } catch (error) {

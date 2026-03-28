@@ -55,7 +55,7 @@ export default function TestAnalyticsPage() {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await apiClient.get(`/api/admin/results/analytics/test/${testId}`);
+      const response = await apiClient.get(`/admin/results/analytics/test/${testId}`);
       setAnalytics(response.data);
     } catch (error) {
       console.error('Error fetching analytics:', error);

@@ -82,7 +82,7 @@ export default function TestsPage() {
 
   const fetchCourses = async () => {
     try {
-      const response = await apiClient.get('/api/admin/courses');
+      const response = await apiClient.get('/admin/courses');
       setCourses(response.data.courses || []);
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -96,7 +96,7 @@ export default function TestsPage() {
       if (filters.courseId) params.append('course_id', filters.courseId);
       if (filters.type) params.append('type', filters.type);
 
-      const response = await apiClient.get<Test[]>(`/api/admin/tests?${params}`);
+      const response = await apiClient.get<Test[]>(`/admin/tests?${params}`);
       setTests(response.data || []);
     } catch (error) {
       console.error('Error fetching tests:', error);
@@ -107,7 +107,7 @@ export default function TestsPage() {
 
   const fetchQuestions = async (testId: string) => {
     try {
-      const response = await apiClient.get<Question[]>(`/api/admin/tests/${testId}/questions`);
+      const response = await apiClient.get<Question[]>(`/admin/tests/${testId}/questions`);
       setQuestions(response.data || []);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -129,9 +129,9 @@ export default function TestsPage() {
       };
 
       if (editingTest) {
-        await apiClient.put(`/api/admin/tests/${editingTest.id}`, payload);
+        await apiClient.put(`/admin/tests/${editingTest.id}`, payload);
       } else {
-        await apiClient.post('/api/admin/tests', payload);
+        await apiClient.post('/admin/tests', payload);
       }
 
       setShowModal(false);
@@ -162,7 +162,7 @@ export default function TestsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this test?')) return;
     try {
-      await apiClient.delete(`/api/admin/tests/${id}`);
+      await apiClient.delete(`/admin/tests/${id}`);
       fetchTests();
     } catch (error) {
       console.error('Error deleting test:', error);
@@ -172,7 +172,7 @@ export default function TestsPage() {
 
   const handleToggleActive = async (test: Test) => {
     try {
-      await apiClient.put(`/api/admin/tests/${test.id}`, { is_active: !test.is_active });
+      await apiClient.put(`/admin/tests/${test.id}`, { is_active: !test.is_active });
       fetchTests();
     } catch (error) {
       console.error('Error toggling test:', error);
@@ -185,7 +185,7 @@ export default function TestsPage() {
     if (!selectedTestId) return;
     setSaving(true);
     try {
-      await apiClient.post(`/api/admin/tests/${selectedTestId}/questions`, {
+      await apiClient.post(`/admin/tests/${selectedTestId}/questions`, {
         question_text: questionForm.questionText,
         option_a: questionForm.optionA,
         option_b: questionForm.optionB,
@@ -214,7 +214,7 @@ export default function TestsPage() {
   const handleDeleteQuestion = async (questionId: string) => {
     if (!confirm('Delete this question?')) return;
     try {
-      await apiClient.delete(`/api/admin/tests/questions/${questionId}`);
+      await apiClient.delete(`/admin/tests/questions/${questionId}`);
       if (selectedTestId) fetchQuestions(selectedTestId);
     } catch (error) {
       console.error('Error deleting question:', error);
@@ -225,7 +225,7 @@ export default function TestsPage() {
     if (!selectedTestId) return;
     setSaving(true);
     try {
-      await apiClient.post(`/api/admin/tests/${selectedTestId}/assign`, {
+      await apiClient.post(`/admin/tests/${selectedTestId}/assign`, {
         assign_all_course: assignAllCourse,
         student_ids: selectedStudents
       });

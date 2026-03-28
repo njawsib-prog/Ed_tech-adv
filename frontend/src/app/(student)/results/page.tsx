@@ -56,8 +56,8 @@ export default function StudentResultsPage() {
   const fetchData = async () => {
     try {
       const [resultsRes, performanceRes] = await Promise.all([
-        apiClient.get('/api/student/results'),
-        apiClient.get('/api/student/performance')
+        apiClient.get('/student/results'),
+        apiClient.get('/student/performance')
       ]);
       setResults(resultsRes.data || []);
       setPerformance(performanceRes.data);

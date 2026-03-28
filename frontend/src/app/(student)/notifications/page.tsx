@@ -48,7 +48,7 @@ export default function NotificationsPage() {
       params.append('page', page.toString());
       if (filter === 'unread') params.append('unreadOnly', 'true');
 
-      const response = await apiClient.get<NotificationsResponse>(`/api/student/notifications?${params}`);
+      const response = await apiClient.get<NotificationsResponse>(`/student/notifications?${params}`);
       setNotifications(response.data.notifications || []);
       setTotalPages(response.data.pagination.totalPages);
     } catch (error) {
@@ -60,7 +60,7 @@ export default function NotificationsPage() {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await apiClient.get('/api/student/notifications/unread-count');
+      const response = await apiClient.get('/student/notifications/unread-count');
       setUnreadCount(response.data.unreadCount);
     } catch (error) {
       console.error('Error fetching unread count:', error);
@@ -69,7 +69,7 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      await apiClient.post(`/api/student/notifications/${id}/read`);
+      await apiClient.post(`/student/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => 
         n.id === id ? { ...n, is_read: true } : n
       ));
@@ -81,7 +81,7 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      await apiClient.post('/api/student/notifications/read-all');
+      await apiClient.post('/student/notifications/read-all');
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (error) {

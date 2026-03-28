@@ -78,7 +78,7 @@ export default function ResultsPage() {
 
   const fetchTests = async () => {
     try {
-      const response = await apiClient.get('/api/admin/tests', {
+      const response = await apiClient.get('/admin/tests', {
         params: { limit: 100 }
       });
       setTests(response.data.tests || []);
@@ -98,7 +98,7 @@ export default function ResultsPage() {
       params.append('sortBy', filters.sortBy);
       params.append('sortOrder', filters.sortOrder);
 
-      const response = await apiClient.get<ResultsResponse>(`/api/admin/results?${params}`);
+      const response = await apiClient.get<ResultsResponse>(`/admin/results?${params}`);
       setResults(response.data.results || []);
       setTotalPages(response.data.pagination.totalPages);
     } catch (error) {
@@ -115,7 +115,7 @@ export default function ResultsPage() {
       if (filters.testId) params.append('testId', filters.testId);
       if (filters.status) params.append('status', filters.status);
 
-      const response = await apiClient.get(`/api/admin/results/export?${params}`, {
+      const response = await apiClient.get(`/admin/results/export?${params}`, {
         responseType: 'blob'
       });
 

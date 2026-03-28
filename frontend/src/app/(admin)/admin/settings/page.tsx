@@ -72,9 +72,9 @@ export default function SettingsPage() {
     setLoading(true);
     try {
       const [configRes, settingsRes, adminsRes] = await Promise.all([
-        apiClient.get('/api/admin/settings/institute'),
-        apiClient.get('/api/admin/settings'),
-        apiClient.get('/api/admin/settings/admins')
+        apiClient.get('/admin/settings/institute'),
+        apiClient.get('/admin/settings'),
+        apiClient.get('/admin/settings/admins')
       ]);
       setInstituteConfig(configRes.data);
       if (settingsRes.data) {
@@ -92,7 +92,7 @@ export default function SettingsPage() {
     if (!instituteConfig) return;
     setSaving(true);
     try {
-      await apiClient.put('/api/admin/settings/institute', instituteConfig);
+      await apiClient.put('/admin/settings/institute', instituteConfig);
       alert('Institute settings saved successfully');
     } catch (error) {
       console.error('Error saving institute settings:', error);
@@ -105,7 +105,7 @@ export default function SettingsPage() {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      await apiClient.put('/api/admin/settings', settings);
+      await apiClient.put('/admin/settings', settings);
       alert('Settings saved successfully');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -127,7 +127,7 @@ export default function SettingsPage() {
 
     setSaving(true);
     try {
-      await apiClient.post('/api/admin/settings/change-password', {
+      await apiClient.post('/admin/settings/change-password', {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       });
@@ -150,7 +150,7 @@ export default function SettingsPage() {
 
     setSaving(true);
     try {
-      await apiClient.post('/api/admin/settings/admins', newAdmin);
+      await apiClient.post('/admin/settings/admins', newAdmin);
       alert('Admin created successfully');
       setShowAdminModal(false);
       setNewAdmin({ name: '', email: '', password: '', role: 'admin' });
@@ -167,7 +167,7 @@ export default function SettingsPage() {
     if (!confirm(`Are you sure you want to delete admin "${name}"?`)) return;
 
     try {
-      await apiClient.delete(`/api/admin/settings/admins/${id}`);
+      await apiClient.delete(`/admin/settings/admins/${id}`);
       alert('Admin deleted successfully');
       fetchData();
     } catch (error: any) {

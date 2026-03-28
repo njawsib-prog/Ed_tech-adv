@@ -38,7 +38,7 @@ export default function FeedbackPage() {
   const fetchFeedback = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/api/student/feedback');
+      const response = await apiClient.get('/student/feedback');
       setFeedbackHistory(response.data || []);
     } catch (error) {
       console.error('Error fetching feedback:', error);
@@ -51,7 +51,7 @@ export default function FeedbackPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await apiClient.post('/api/student/feedback', formData);
+      await apiClient.post('/student/feedback', formData);
       setShowModal(false);
       resetForm();
       fetchFeedback();

@@ -58,8 +58,8 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       const [profileRes, activityRes] = await Promise.all([
-        apiClient.get('/api/student/profile'),
-        apiClient.get('/api/student/profile/activity')
+        apiClient.get('/student/profile'),
+        apiClient.get('/student/profile/activity')
       ]);
       setProfile(profileRes.data);
       setActivity(activityRes.data || []);
@@ -77,7 +77,7 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      await apiClient.put('/api/student/profile', formData);
+      await apiClient.put('/student/profile', formData);
       setProfile(prev => prev ? { ...prev, ...formData } : null);
       alert('Profile updated successfully');
     } catch (error) {
@@ -100,7 +100,7 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      await apiClient.post('/api/student/profile/change-password', {
+      await apiClient.post('/student/profile/change-password', {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       });
@@ -123,7 +123,7 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      await apiClient.delete('/api/student/profile', { data: { password: deletePassword } });
+      await apiClient.delete('/student/profile', { data: { password: deletePassword } });
       alert('Account deleted successfully');
       router.push('/');
     } catch (error: any) {

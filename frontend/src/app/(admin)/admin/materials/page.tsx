@@ -92,7 +92,7 @@ export default function MaterialsPage() {
 
   const fetchCourses = async () => {
     try {
-      const response = await apiClient.get('/api/admin/courses');
+      const response = await apiClient.get('/admin/courses');
       setCourses(response.data.courses || []);
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -109,7 +109,7 @@ export default function MaterialsPage() {
       if (filters.type) params.append('type', filters.type);
       if (filters.search) params.append('search', filters.search);
 
-      const response = await apiClient.get<MaterialsResponse>(`/api/admin/materials?${params}`);
+      const response = await apiClient.get<MaterialsResponse>(`/admin/materials?${params}`);
       setMaterials(response.data.materials || []);
       setTotalPages(response.data.pagination.totalPages);
     } catch (error) {
@@ -144,9 +144,9 @@ export default function MaterialsPage() {
       };
 
       if (editingMaterial) {
-        await apiClient.put(`/api/admin/materials/${editingMaterial.id}`, payload);
+        await apiClient.put(`/admin/materials/${editingMaterial.id}`, payload);
       } else {
-        await apiClient.post('/api/admin/materials', payload);
+        await apiClient.post('/admin/materials', payload);
       }
 
       setShowModal(false);
@@ -177,7 +177,7 @@ export default function MaterialsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this material?')) return;
     try {
-      await apiClient.delete(`/api/admin/materials/${id}`);
+      await apiClient.delete(`/admin/materials/${id}`);
       fetchMaterials();
     } catch (error) {
       console.error('Error deleting material:', error);
@@ -187,7 +187,7 @@ export default function MaterialsPage() {
 
   const handleTogglePublish = async (id: string) => {
     try {
-      await apiClient.patch(`/api/admin/materials/${id}/publish`);
+      await apiClient.patch(`/admin/materials/${id}/publish`);
       fetchMaterials();
     } catch (error) {
       console.error('Error toggling publish:', error);

@@ -62,7 +62,7 @@ export default function NotificationsPage() {
       if (filters.type) params.append('type', filters.type);
       if (filters.targetAudience) params.append('targetAudience', filters.targetAudience);
 
-      const response = await apiClient.get<NotificationsResponse>(`/api/admin/notifications?${params}`);
+      const response = await apiClient.get<NotificationsResponse>(`/admin/notifications?${params}`);
       setNotifications(response.data.notifications || []);
       setTotalPages(response.data.pagination.totalPages);
     } catch (error) {
@@ -76,7 +76,7 @@ export default function NotificationsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await apiClient.post('/api/admin/notifications', {
+      await apiClient.post('/admin/notifications', {
         title: formData.title,
         message: formData.message,
         type: formData.type,
@@ -99,7 +99,7 @@ export default function NotificationsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this notification?')) return;
     try {
-      await apiClient.delete(`/api/admin/notifications/${id}`);
+      await apiClient.delete(`/admin/notifications/${id}`);
       fetchNotifications();
     } catch (error) {
       console.error('Error deleting notification:', error);
@@ -110,7 +110,7 @@ export default function NotificationsPage() {
   const handleBroadcast = async (id: string) => {
     if (!confirm('Send this notification to all targeted users?')) return;
     try {
-      await apiClient.post(`/api/admin/notifications/${id}/broadcast`);
+      await apiClient.post(`/admin/notifications/${id}/broadcast`);
       alert('Notification broadcasted successfully');
       fetchNotifications();
     } catch (error) {
