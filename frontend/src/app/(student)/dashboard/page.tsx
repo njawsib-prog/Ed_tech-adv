@@ -27,7 +27,8 @@ export default function StudentDashboard() {
     const fetchDashboard = async () => {
       try {
         const response = await apiClient.get('/student/dashboard');
-        setData(response.data);
+        // Handle both old format (direct object) and new format ({ success, data })
+        setData(response.data.success ? response.data.data : response.data);
       } catch (error) {
         console.error('Failed to fetch dashboard:', error);
       } finally {
@@ -157,9 +158,9 @@ export default function StudentDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-sm" style={{ color: 'var(--color-primary)' }}>
-                        {result.score}/{result.total}
+                        {result.score}/{result.total_marks}
                       </p>
-                      <p className="text-student-muted">{Math.round(result.accuracy)}%</p>
+                      <p className="text-student-muted">{Math.round(result.percentage)}%</p>
                     </div>
                   </div>
                 ))}

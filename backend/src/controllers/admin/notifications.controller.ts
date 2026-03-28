@@ -53,21 +53,24 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
 
     if (error) {
       console.error('Admin getNotifications DB error:', JSON.stringify(error));
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
     res.json({
-      notifications: data,
-      pagination: {
-        total: count || 0,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil((count || 0) / Number(limit))
+      success: true,
+      data: {
+        notifications: data,
+        pagination: {
+          total: count || 0,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil((count || 0) / Number(limit))
+        }
       }
     });
   } catch (error) {
     console.error('Get notifications error:', error);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
+    res.status(500).json({ success: false, error: 'Failed to fetch notifications' });
   }
 };
 
@@ -80,7 +83,7 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
     const { title, message, type, targetAudience, actionUrl, scheduledAt, targetType } = req.body;
 
     if (!title || !message) {
-      return res.status(400).json({ error: 'Title and message are required' });
+      return res.status(400).json({ success: false, error: 'Title and message are required' });
     }
 
     const VALID_TYPES = ['info', 'warning', 'success', 'error'] as const;
@@ -138,13 +141,13 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
         institute_id: instituteId || null,
         created_by: adminId
       }));
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.status(201).json(data);
+    res.status(201).json({ success: true, data });
   } catch (error) {
     console.error('Create notification error:', error);
-    res.status(500).json({ error: 'Failed to create notification' });
+    res.status(500).json({ success: false, error: 'Failed to create notification' });
   }
 };
 

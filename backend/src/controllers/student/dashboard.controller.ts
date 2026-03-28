@@ -14,7 +14,7 @@ export const getStudentDashboard = async (req: StudentRequest, res: Response): P
     const studentId = req.user?.id;
 
     if (!studentId) {
-      res.status(401).json({ error: 'Unauthorized' });
+      res.status(401).json({ success: false, error: 'Unauthorized' });
       return;
     }
 
@@ -59,14 +59,14 @@ export const getStudentDashboard = async (req: StudentRequest, res: Response): P
       .lte('tests.scheduled_at', weekFromNow.toISOString())
       .limit(5);
 
-    // Get last 3 results
+    // Get last 3 results - Use percentage instead of accuracy
     const { data: recentResults } = await supabaseAdmin
       .from('results')
       .select(`
         id,
         score,
-        total,
-        accuracy,
+        total_marks,
+        percentage,
         submitted_at,
         tests (title)
       `)
@@ -82,18 +82,18 @@ export const getStudentDashboard = async (req: StudentRequest, res: Response): P
 
     const { data: avgScoreData } = await supabaseAdmin
       .from('results')
-      .select('accuracy')
+      .select('percentage')
       .eq('student_id', studentId);
 
     const avgScore = avgScoreData && avgScoreData.length > 0
-      ? avgScoreData.reduce((sum, r) => sum + (r.accuracy || 0), 0) / avgScoreData.length
+      ? avgScoreData.reduce((sum, r) => sum + (r.percentage || 0), 0) / avgScoreData.length
       : 0;
 
     const { data: bestScoreData } = await supabaseAdmin
       .from('results')
-      .select('accuracy')
+      .select('percentage')
       .eq('student_id', studentId)
-      .order('accuracy', { ascending: false })
+      .order('percentage', { ascending: false })
       .limit(1);
 
     // Calculate streak (consecutive days with submissions)
@@ -112,19 +112,22 @@ export const getStudentDashboard = async (req: StudentRequest, res: Response): P
     }
 
     res.json({
-      todayTests: todayTests || [],
-      upcomingTests: upcomingTests || [],
-      recentResults: recentResults || [],
-      stats: {
-        totalTests: totalTests || 0,
-        avgScore: Math.round(avgScore * 10) / 10,
-        bestScore: bestScoreData?.[0]?.accuracy || 0,
-        streak,
+      success: true,
+      data: {
+        todayTests: todayTests || [],
+        upcomingTests: upcomingTests || [],
+        recentResults: recentResults || [],
+        stats: {
+          totalTests: totalTests || 0,
+          avgScore: Math.round(avgScore * 10) / 10,
+          bestScore: bestScoreData?.[0]?.percentage || 0,
+          streak,
+        },
       },
     });
   } catch (error) {
     console.error('Get student dashboard error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 

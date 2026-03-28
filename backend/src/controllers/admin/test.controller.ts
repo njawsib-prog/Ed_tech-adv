@@ -33,7 +33,7 @@ export const getTests = async (req: Request, res: Response): Promise<void> => {
     const { data, error } = await query;
 
     if (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, error: error.message });
       return;
     }
 
@@ -53,10 +53,10 @@ export const getTests = async (req: Request, res: Response): Promise<void> => {
       })
     );
 
-    res.json(testsWithCounts);
+    res.json({ success: true, data: testsWithCounts || [] });
   } catch (error) {
     console.error('Get tests error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -66,7 +66,7 @@ export const createTest = async (req: TestRequest, res: Response): Promise<void>
     const { title, description, course_id, time_limit_mins, type, scheduled_at } = req.body;
 
     if (!title || !course_id) {
-      res.status(400).json({ error: 'Title and course are required' });
+      res.status(400).json({ success: false, error: 'Title and course are required' });
       return;
     }
 
@@ -86,16 +86,16 @@ export const createTest = async (req: TestRequest, res: Response): Promise<void>
       .single();
 
     if (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, error: error.message });
       return;
     }
 
     // TODO: If scheduled_at is set, create BullMQ job for scheduling
 
-    res.status(201).json(data);
+    res.status(201).json({ success: true, data });
   } catch (error) {
     console.error('Create test error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 

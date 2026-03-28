@@ -16,7 +16,7 @@ export const getStudentTests = async (req: StudentRequest, res: Response): Promi
     const studentId = req.user?.id;
 
     if (!studentId) {
-      res.status(401).json({ error: 'Unauthorized' });
+      res.status(401).json({ success: false, error: 'Unauthorized' });
       return;
     }
 
@@ -41,14 +41,14 @@ export const getStudentTests = async (req: StudentRequest, res: Response): Promi
       .eq('student_id', studentId);
 
     if (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, error: error.message });
       return;
     }
 
-    // Get results for completed tests
+    // Get results for completed tests - use percentage instead of accuracy
     const { data: results } = await supabaseAdmin
       .from('results')
-      .select('test_id, score, total, accuracy, submitted_at')
+      .select('test_id, score, total_marks, percentage, submitted_at')
       .eq('student_id', studentId);
 
     const resultsMap = new Map(results?.map((r) => [r.test_id, r]) || []);
@@ -79,13 +79,16 @@ export const getStudentTests = async (req: StudentRequest, res: Response): Promi
     });
 
     res.json({
-      pending,
-      scheduled,
-      completed,
+      success: true,
+      data: {
+        pending,
+        scheduled,
+        completed,
+      },
     });
   } catch (error) {
     console.error('Get student tests error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -96,7 +99,7 @@ export const getTestDetails = async (req: StudentRequest, res: Response): Promis
     const studentId = req.user?.id;
 
     if (!studentId) {
-      res.status(401).json({ error: 'Unauthorized' });
+      res.status(401).json({ success: false, error: 'Unauthorized' });
       return;
     }
 
@@ -109,7 +112,7 @@ export const getTestDetails = async (req: StudentRequest, res: Response): Promis
       .single();
 
     if (!assignment) {
-      res.status(403).json({ error: 'Not assigned to this test' });
+      res.status(403).json({ success: false, error: 'Not assigned to this test' });
       return;
     }
 
@@ -130,7 +133,7 @@ export const getTestDetails = async (req: StudentRequest, res: Response): Promis
       .single();
 
     if (error || !test) {
-      res.status(404).json({ error: 'Test not found' });
+      res.status(404).json({ success: false, error: 'Test not found' });
       return;
     }
 
@@ -149,15 +152,18 @@ export const getTestDetails = async (req: StudentRequest, res: Response): Promis
       .single();
 
     res.json({
-      ...test,
-      course_name: (test.courses as any)?.[0]?.name,
-      question_count: questionCount || 0,
-      has_submitted: !!result,
-      assignment_status: assignment.status,
+      success: true,
+      data: {
+        ...test,
+        course_name: (test.courses as any)?.[0]?.name,
+        question_count: questionCount || 0,
+        has_submitted: !!result,
+        assignment_status: assignment.status,
+      },
     });
   } catch (error) {
     console.error('Get test details error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -168,7 +174,7 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
     const studentId = req.user?.id;
 
     if (!studentId) {
-      res.status(401).json({ error: 'Unauthorized' });
+      res.status(401).json({ success: false, error: 'Unauthorized' });
       return;
     }
 
@@ -181,7 +187,7 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
       .single();
 
     if (!assignment) {
-      res.status(403).json({ error: 'Not assigned to this test' });
+      res.status(403).json({ success: false, error: 'Not assigned to this test' });
       return;
     }
 
@@ -194,7 +200,7 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
       .single();
 
     if (existingResult) {
-      res.status(400).json({ error: 'Already submitted this test' });
+      res.status(400).json({ success: false, error: 'Already submitted this test' });
       return;
     }
 
@@ -206,7 +212,7 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
       .single();
 
     if (!test?.is_active) {
-      res.status(400).json({ error: 'Test is not active' });
+      res.status(400).json({ success: false, error: 'Test is not active' });
       return;
     }
 
@@ -218,7 +224,7 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
       .order('order_index');
 
     if (error || !questions || questions.length === 0) {
-      res.status(400).json({ error: 'No questions found for this test' });
+      res.status(400).json({ success: false, error: 'No questions found for this test' });
       return;
     }
 
@@ -239,13 +245,16 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
       .eq('id', assignment.id);
 
     res.json({
-      questions: shuffled,
-      test_id: id,
-      start_time: new Date().toISOString(),
+      success: true,
+      data: {
+        questions: shuffled,
+        test_id: id,
+        start_time: new Date().toISOString(),
+      },
     });
   } catch (error) {
     console.error('Start test error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
@@ -257,7 +266,7 @@ export const submitTest = async (req: StudentRequest, res: Response): Promise<vo
     const { answers, time_taken_secs } = req.body;
 
     if (!studentId) {
-      res.status(401).json({ error: 'Unauthorized' });
+      res.status(401).json({ success: false, error: 'Unauthorized' });
       return;
     }
 
@@ -268,7 +277,7 @@ export const submitTest = async (req: StudentRequest, res: Response): Promise<vo
       .eq('test_id', id);
 
     if (!questions) {
-      res.status(400).json({ error: 'Test not found' });
+      res.status(400).json({ success: false, error: 'Test not found' });
       return;
     }
 
@@ -286,26 +295,28 @@ export const submitTest = async (req: StudentRequest, res: Response): Promise<vo
       };
     });
 
-    const total = questions.length;
-    const accuracy = (score / total) * 100;
+    const totalMarks = questions.length * 20; // Assuming 20 marks per question
+    const percentage = (score / questions.length) * 100;
+    const status = percentage >= 40 ? 'passed' : 'failed';
 
-    // Save result
+    // Save result - use proper field names
     const { data: result, error } = await supabaseAdmin
       .from('results')
       .insert({
         student_id: studentId,
         test_id: id,
         score,
-        total,
-        accuracy,
-        time_taken_secs,
+        total_marks: totalMarks,
+        percentage,
+        status,
+        time_taken_seconds: time_taken_secs,
         answers: answersData,
       })
       .select()
       .single();
 
     if (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, error: error.message });
       return;
     }
 
@@ -320,16 +331,20 @@ export const submitTest = async (req: StudentRequest, res: Response): Promise<vo
       .eq('student_id', studentId);
 
     res.json({
-      result: {
-        id: result.id,
-        score,
-        total,
-        accuracy,
+      success: true,
+      data: {
+        result: {
+          id: result.id,
+          score,
+          total_marks: totalMarks,
+          percentage,
+          status,
+        },
       },
     });
   } catch (error) {
     console.error('Submit test error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 

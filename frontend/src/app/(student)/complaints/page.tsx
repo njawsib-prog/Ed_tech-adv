@@ -50,7 +50,8 @@ export default function ComplaintsPage() {
     setLoading(true);
     try {
       const response = await apiClient.get('/student/complaints');
-      setComplaints(response.data || []);
+      // Handle both old format (direct object) and new format ({ success, data })
+      setComplaints(response.data.success ? response.data.data : response.data || []);
     } catch (error) {
       console.error('Error fetching complaints:', error);
     } finally {

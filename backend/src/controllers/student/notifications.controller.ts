@@ -50,7 +50,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
 
     if (error) {
       console.error('Student getNotifications DB error:', JSON.stringify(error));
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
     // Get read status
@@ -69,17 +69,20 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
     }));
 
     res.json({
-      notifications: notificationsWithRead,
-      pagination: {
-        total: count || 0,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil((count || 0) / Number(limit))
+      success: true,
+      data: {
+        notifications: notificationsWithRead,
+        pagination: {
+          total: count || 0,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil((count || 0) / Number(limit))
+        }
       }
     });
   } catch (error) {
     console.error('Get notifications error:', error);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
+    res.status(500).json({ success: false, error: 'Failed to fetch notifications' });
   }
 };
 
@@ -99,13 +102,13 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
       });
 
     if (error && !error.message.includes('duplicate')) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.json({ message: 'Marked as read' });
+    res.json({ success: true, data: { message: 'Marked as read' } });
   } catch (error) {
     console.error('Mark as read error:', error);
-    res.status(500).json({ error: 'Failed to mark as read' });
+    res.status(500).json({ success: false, error: 'Failed to mark as read' });
   }
 };
 
@@ -126,7 +129,7 @@ export const markAllAsRead = async (req: AuthRequest, res: Response) => {
     const { data: notifications } = await allQuery;
 
     if (!notifications || notifications.length === 0) {
-      return res.json({ message: 'No notifications to mark' });
+      return res.json({ success: true, data: { message: 'No notifications to mark' } });
     }
 
     const reads = notifications.map(n => ({
@@ -140,13 +143,13 @@ export const markAllAsRead = async (req: AuthRequest, res: Response) => {
       .upsert(reads, { onConflict: 'notification_id,student_id' });
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.json({ message: 'All marked as read' });
+    res.json({ success: true, data: { message: 'All marked as read' } });
   } catch (error) {
     console.error('Mark all as read error:', error);
-    res.status(500).json({ error: 'Failed to mark all as read' });
+    res.status(500).json({ success: false, error: 'Failed to mark all as read' });
   }
 };
 
@@ -174,10 +177,10 @@ export const getUnreadCount = async (req: AuthRequest, res: Response) => {
     }
     const { count: read } = await readQuery;
 
-    res.json({ unreadCount: (total || 0) - (read || 0) });
+    res.json({ success: true, data: { unreadCount: (total || 0) - (read || 0) } });
   } catch (error) {
     console.error('Get unread count error:', error);
-    res.status(500).json({ error: 'Failed to get unread count' });
+    res.status(500).json({ success: false, error: 'Failed to get unread count' });
   }
 };
 
@@ -189,7 +192,7 @@ export const submitComplaint = async (req: AuthRequest, res: Response) => {
     const { title, description, category, priority } = req.body;
 
     if (!title || !description || !category) {
-      return res.status(400).json({ error: 'Title, description, and category are required' });
+      return res.status(400).json({ success: false, error: 'Title, description, and category are required' });
     }
 
     const { data, error } = await supabaseAdmin
@@ -206,13 +209,13 @@ export const submitComplaint = async (req: AuthRequest, res: Response) => {
       .single();
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.status(201).json(data);
+    res.status(201).json({ success: true, data });
   } catch (error) {
     console.error('Submit complaint error:', error);
-    res.status(500).json({ error: 'Failed to submit complaint' });
+    res.status(500).json({ success: false, error: 'Failed to submit complaint' });
   }
 };
 
@@ -243,13 +246,13 @@ export const getMyComplaints = async (req: AuthRequest, res: Response) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.json(data);
+    res.json({ success: true, data: data || [] });
   } catch (error) {
     console.error('Get my complaints error:', error);
-    res.status(500).json({ error: 'Failed to fetch complaints' });
+    res.status(500).json({ success: false, error: 'Failed to fetch complaints' });
   }
 };
 
@@ -282,13 +285,13 @@ export const getComplaintById = async (req: AuthRequest, res: Response) => {
       .single();
 
     if (error) {
-      return res.status(404).json({ error: 'Complaint not found' });
+      return res.status(404).json({ success: false, error: 'Complaint not found' });
     }
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Get complaint error:', error);
-    res.status(500).json({ error: 'Failed to fetch complaint' });
+    res.status(500).json({ success: false, error: 'Failed to fetch complaint' });
   }
 };
 
@@ -300,7 +303,7 @@ export const submitFeedback = async (req: AuthRequest, res: Response) => {
     const { type, rating, subject, message } = req.body;
 
     if (!type || !rating) {
-      return res.status(400).json({ error: 'Type and rating are required' });
+      return res.status(400).json({ success: false, error: 'Type and rating are required' });
     }
 
     const { data, error } = await supabaseAdmin
@@ -317,13 +320,13 @@ export const submitFeedback = async (req: AuthRequest, res: Response) => {
       .single();
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.status(201).json(data);
+    res.status(201).json({ success: true, data });
   } catch (error) {
     console.error('Submit feedback error:', error);
-    res.status(500).json({ error: 'Failed to submit feedback' });
+    res.status(500).json({ success: false, error: 'Failed to submit feedback' });
   }
 };
 
@@ -341,12 +344,12 @@ export const getMyFeedback = async (req: AuthRequest, res: Response) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.json(data);
+    res.json({ success: true, data: data || [] });
   } catch (error) {
     console.error('Get my feedback error:', error);
-    res.status(500).json({ error: 'Failed to fetch feedback' });
+    res.status(500).json({ success: false, error: 'Failed to fetch feedback' });
   }
 };

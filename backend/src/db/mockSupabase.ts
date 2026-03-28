@@ -437,6 +437,307 @@ function createMockQuery(tableName: string, filters: any[] = []): any {
 // Global mock storage instance
 const mockStorage: MockTableData = {};
 
+// Seed test data for development
+function seedTestData(): void {
+  // Get the student ID from the seeded student
+  const student = mockStorage['students']?.[0];
+  const studentId = student?.id;
+
+  if (studentId) {
+    // Seed courses
+    const courseId = uuidv4();
+    mockStorage['courses'].push({
+      id: courseId,
+      name: 'Full Stack Development',
+      description: 'Complete web development course',
+      duration_months: 6,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    // Update student with course
+    mockStorage['students'][0].course_id = courseId;
+
+    // Seed subjects
+    const subjectId = uuidv4();
+    mockStorage['subjects'].push({
+      id: subjectId,
+      name: 'Web Technologies',
+      course_id: courseId,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    // Seed tests
+    const testId1 = uuidv4();
+    const testId2 = uuidv4();
+    mockStorage['tests'].push(
+      {
+        id: testId1,
+        title: 'JavaScript Fundamentals',
+        description: 'Test your JavaScript knowledge',
+        course_id: courseId,
+        subject_id: subjectId,
+        total_marks: 100,
+        passing_marks: 40,
+        time_limit_mins: 30,
+        type: 'graded',
+        scheduled_at: null,
+        is_active: true,
+        created_by: mockStorage['admins']?.[0].id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: testId2,
+        title: 'React Basics',
+        description: 'Introduction to React',
+        course_id: courseId,
+        subject_id: subjectId,
+        total_marks: 50,
+        passing_marks: 20,
+        time_limit_mins: 45,
+        type: 'practice',
+        scheduled_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+        is_active: true,
+        created_by: mockStorage['admins']?.[0].id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+    );
+
+    // Seed questions for test 1
+    for (let i = 1; i <= 5; i++) {
+      mockStorage['questions'].push({
+        id: uuidv4(),
+        test_id: testId1,
+        question_text: `What is the output of: console.log(${i} + "${i}")?`,
+        option_a: `${i}${i}`,
+        option_b: `${i} ${i}`,
+        option_c: `${i}i`,
+        option_d: `NaN`,
+        correct_option: 'a',
+        order_index: i,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    // Seed questions for test 2
+    for (let i = 1; i <= 3; i++) {
+      mockStorage['questions'].push({
+        id: uuidv4(),
+        test_id: testId2,
+        question_text: `What does ${i} + ${i} equal in JavaScript?`,
+        option_a: `${i * 2}`,
+        option_b: `${i}${i}`,
+        option_c: `'${i}${i}'`,
+        option_d: `${i + i}`,
+        correct_option: 'a',
+        order_index: i,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    // Seed test assignments
+    mockStorage['test_assignments'].push(
+      {
+        id: uuidv4(),
+        test_id: testId1,
+        student_id: studentId,
+        status: 'pending',
+        start_time: null,
+        end_time: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: uuidv4(),
+        test_id: testId2,
+        student_id: studentId,
+        status: 'pending',
+        start_time: null,
+        end_time: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+    );
+
+    // Seed results with proper field names (total_marks, percentage, status)
+    const resultId = uuidv4();
+    const score = 4;
+    const total = 5;
+    const percentage = (score / total) * 100;
+    const status = percentage >= 40 ? 'passed' : 'failed';
+
+    mockStorage['results'].push({
+      id: resultId,
+      student_id: studentId,
+      test_id: testId1,
+      score,
+      total_marks: total,
+      percentage,
+      status,
+      time_taken_seconds: 1800, // 30 minutes
+      submitted_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+      started_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 1800 * 1000).toISOString(),
+      answers: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    // Seed activity log
+    mockStorage['activity_log'].push({
+      id: uuidv4(),
+      user_id: studentId,
+      user_type: 'student',
+      action: 'test_completed',
+      metadata: { test_id: testId1, score },
+      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    // Update test assignment to completed
+    const assignment = mockStorage['test_assignments'].find(a => a.test_id === testId1 && a.student_id === studentId);
+    if (assignment) {
+      assignment.status = 'completed';
+      assignment.end_time = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
+    }
+
+    // Seed study materials
+    mockStorage['study_materials'].push(
+      {
+        id: uuidv4(),
+        title: 'JavaScript Cheatsheet',
+        description: 'Quick reference for JavaScript syntax',
+        type: 'pdf',
+        file_url: '/materials/js-cheatsheet.pdf',
+        course_id: courseId,
+        subject_id: subjectId,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: uuidv4(),
+        title: 'React Tutorial',
+        description: 'Introduction to React concepts',
+        type: 'video',
+        file_url: '/materials/react-tutorial.mp4',
+        course_id: courseId,
+        subject_id: subjectId,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+    );
+
+    // Seed material views
+    mockStorage['material_views'].push({
+      id: uuidv4(),
+      student_id: studentId,
+      material_id: mockStorage['study_materials']?.[0]?.id,
+      viewed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    // Seed notifications
+    const notificationId1 = uuidv4();
+    const notificationId2 = uuidv4();
+    mockStorage['notifications'].push(
+      {
+        id: notificationId1,
+        title: 'New Test Available',
+        message: 'A new test on React Basics has been assigned to you.',
+        type: 'info',
+        target_audience: 'students',
+        action_url: `/tests/${testId2}`,
+        is_active: true,
+        created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: notificationId2,
+        title: 'Test Result Available',
+        message: 'Your result for JavaScript Fundamentals is now available.',
+        type: 'success',
+        target_audience: 'students',
+        action_url: `/results/${resultId}`,
+        is_active: true,
+        created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+        updated_at: new Date().toISOString(),
+      }
+    );
+
+    // Seed notification reads (mark the second notification as read)
+    mockStorage['notification_reads'].push({
+      id: uuidv4(),
+      notification_id: notificationId2,
+      student_id: studentId,
+      read_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    // Seed complaints
+    mockStorage['complaints'].push({
+      id: uuidv4(),
+      student_id: studentId,
+      title: 'Issue with test timer',
+      description: 'The timer on the JavaScript test was not counting down properly.',
+      category: 'technical',
+      priority: 'medium',
+      status: 'open',
+      created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+      updated_at: new Date().toISOString(),
+    });
+
+    // Seed feedback
+    mockStorage['feedback'].push({
+      id: uuidv4(),
+      institute_id: null,
+      student_id: studentId,
+      type: 'platform',
+      rating: 4,
+      subject: 'Great platform!',
+      message: 'The learning experience is very good. I especially like the test interface.',
+      created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+    });
+
+    // Seed payments
+    mockStorage['payments'].push({
+      id: uuidv4(),
+      student_id: studentId,
+      amount: 50000,
+      currency: 'INR',
+      status: 'completed',
+      payment_method: 'online',
+      transaction_id: 'TXN' + Date.now(),
+      paid_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    // Seed attendance
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      mockStorage['attendance'].push({
+        id: uuidv4(),
+        student_id: studentId,
+        date: date.toISOString().split('T')[0],
+        status: i < 5 ? 'present' : 'absent', // Present for last 5 days
+        check_in_time: i < 5 ? '09:00:00' : null,
+        check_out_time: i < 5 ? '17:00:00' : null,
+        created_at: date.toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+  }
+
+  console.log('[SAFE_MODE:DB] Seeded test data for student:', studentId);
+}
+
 // Initialize with seed data
 function initializeMockStorage(): void {
   const adminPassword = bcrypt.hashSync('admin123', 10);
@@ -475,18 +776,21 @@ function initializeMockStorage(): void {
   
   // Initialize empty tables
   const tables = [
-    'institutes', 'branches', 'courses', 'modules', 'subjects', 'tests', 
+    'institutes', 'branches', 'courses', 'modules', 'subjects', 'tests',
     'questions', 'test_attempts', 'results', 'study_materials',
-    'notifications', 'complaints', 'feedback', 'settings',
-    'payments', 'attendance'
+    'notifications', 'notification_reads', 'complaints', 'feedback', 'settings',
+    'payments', 'attendance', 'activity_log', 'material_views', 'test_assignments'
   ];
-  
+
   tables.forEach(table => {
     if (!mockStorage[table]) {
       mockStorage[table] = [];
     }
   });
-  
+
+  // Seed additional test data
+  seedTestData();
+
   console.log('[SAFE_MODE:DB] Initialized in-memory database with seed data');
 }
 

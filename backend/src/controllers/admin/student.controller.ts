@@ -112,19 +112,22 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
       .range(offset, offset + Number(limit) - 1);
 
     if (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, error: error.message });
       return;
     }
 
     res.json({
-      students: data || [],
-      total: count || 0,
-      page: Number(page),
-      limit: Number(limit),
+      success: true,
+      data: {
+        students: data || [],
+        total: count || 0,
+        page: Number(page),
+        limit: Number(limit),
+      },
     });
   } catch (error) {
     console.error('Get students error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 

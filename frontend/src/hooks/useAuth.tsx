@@ -32,8 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[AuthProvider] STEP B: refreshUser called');
     try {
       const response = await apiClient.get('/auth/me');
-      console.log('[AuthProvider] STEP C: User authenticated', { user: response.data.user });
-      setUser(response.data.user);
+      // Handle both old format (direct object) and new format ({ success, data })
+      const data = response.data.success ? response.data.data : response.data;
+      console.log('[AuthProvider] STEP C: User authenticated', { user: data.user });
+      setUser(data.user);
     } catch (error) {
       console.log('[AuthProvider] STEP D: No authenticated user found', error);
       setUser(null);
@@ -64,13 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // CRITICAL: Add immediate logging after the call
       const response = await apiClient.post(endpoint, { email, password });
-      console.log('[useAuth] STEP 4: apiClient.post() returned', { 
+      // Handle both old format (direct object) and new format ({ success, data })
+      const data = response.data.success ? response.data.data : response.data;
+      console.log('[useAuth] STEP 4: apiClient.post() returned', {
         status: response.status,
         hasData: !!response.data,
-        user: response.data?.user 
+        user: data?.user
       });
       console.log('[useAuth] STEP 5: Login successful, setting user state');
-      setUser(response.data.user);
+      setUser(data.user);
       console.log('[useAuth] STEP 6: Login function complete');
     } catch (error: any) {
       console.error('[useAuth] STEP 7: Login failed with error:', error);

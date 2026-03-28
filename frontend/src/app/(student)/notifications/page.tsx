@@ -19,8 +19,18 @@ interface Notification {
 }
 
 interface NotificationsResponse {
-  notifications: Notification[];
-  pagination: {
+  success?: boolean;
+  data?: {
+    notifications: Notification[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+  notifications?: Notification[];
+  pagination?: {
     total: number;
     page: number;
     limit: number;
@@ -48,9 +58,12 @@ export default function NotificationsPage() {
       params.append('page', page.toString());
       if (filter === 'unread') params.append('unreadOnly', 'true');
 
-      const response = await apiClient.get<NotificationsResponse>(`/student/notifications?${params}`);
-      setNotifications(response.data.notifications || []);
-      setTotalPages(response.data.pagination.totalPages);
+      const response = await apiClient.get(`/student/notifications?${params}`);
+      // Handle both old format (direct object) and new format ({ success, data })
+      const apiResponse = response.data as any;
+      const data = apiResponse.success ? apiResponse.data : apiResponse;
+      setNotifications(data?.notifications || []);
+      setTotalPages(data?.pagination?.totalPages || 1);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -61,7 +74,10 @@ export default function NotificationsPage() {
   const fetchUnreadCount = async () => {
     try {
       const response = await apiClient.get('/student/notifications/unread-count');
-      setUnreadCount(response.data.unreadCount);
+      // Handle both old format (direct object) and new format ({ success, data })
+      const apiResponse = response.data as any;
+      const data = apiResponse.success ? apiResponse.data : apiResponse;
+      setUnreadCount(data?.unreadCount || 0);
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
