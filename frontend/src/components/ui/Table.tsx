@@ -24,6 +24,8 @@ export default function Table<T extends { id?: string }>({
   emptyMessage = 'No data available',
   onRowClick,
 }: TableProps<T>) {
+  const safeData = Array.isArray(data) ? data : [];
+
   if (loading) {
     return (
       <div className="bg-white rounded-base shadow overflow-hidden">
@@ -57,14 +59,14 @@ export default function Table<T extends { id?: string }>({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {data.length === 0 ? (
+          {safeData.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
                 {emptyMessage}
               </td>
             </tr>
           ) : (
-            data.map((item, index) => (
+            safeData.map((item, index) => (
               <tr
                 key={(item as any).id || index}
                 className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}`}

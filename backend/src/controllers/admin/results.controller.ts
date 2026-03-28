@@ -75,7 +75,7 @@ export const getResults = async (req: AuthRequest, res: Response) => {
     }
 
     res.json({
-      results: data,
+      results: data || [],
       pagination: {
         total: count || 0,
         page: Number(page),
