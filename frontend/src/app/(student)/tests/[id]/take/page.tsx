@@ -53,7 +53,7 @@ export default function TakeTestPage() {
 
   // Timer
   useEffect(() => {
-    if (timeLeft <= 0 || !loading) return;
+    if (timeLeft <= 0 || loading) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
