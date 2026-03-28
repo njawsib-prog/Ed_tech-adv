@@ -9,9 +9,10 @@ import { Spinner } from '@/components/ui';
 export default function AdminLoginPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const adminRoles = ['admin', 'super_admin', 'branch_admin'];
 
   useEffect(() => {
-    if (!isLoading && user && (user.role === 'admin' || user.role === 'super_admin')) {
+    if (!isLoading && user && adminRoles.includes(user.role)) {
       router.push('/admin');
     }
   }, [user, isLoading, router]);
@@ -24,7 +25,7 @@ export default function AdminLoginPage() {
     );
   }
 
-  if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+  if (user && adminRoles.includes(user.role)) {
     return null;
   }
 

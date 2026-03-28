@@ -11,10 +11,11 @@ const LoginForm = dynamic(() => import('@/components/auth/LoginForm'), { ssr: fa
 function HomeContent() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const adminRoles = ['admin', 'super_admin', 'branch_admin'];
 
   useEffect(() => {
     if (!isLoading && user) {
-      if (user.role === 'admin' || user.role === 'super_admin') {
+      if (adminRoles.includes(user.role)) {
         router.push('/admin');
       } else {
         router.push('/dashboard');

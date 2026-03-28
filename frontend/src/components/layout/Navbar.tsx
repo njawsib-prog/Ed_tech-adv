@@ -3,6 +3,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui';
 import { useInstitute } from '@/hooks/useInstitute';
+import Image from 'next/image';
 
 interface NavbarProps {
   title: string;
@@ -12,10 +13,11 @@ interface NavbarProps {
 export default function Navbar({ title, onMenuClick }: NavbarProps) {
   const { user, logout } = useAuth();
   const config = useInstitute();
+  const adminRoles = ['admin', 'super_admin', 'branch_admin'];
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = user?.role === 'admin' ? '/admin/login' : '/';
+    window.location.href = user?.role && adminRoles.includes(user.role) ? '/admin/login' : '/';
   };
 
   return (
@@ -40,14 +42,14 @@ export default function Navbar({ title, onMenuClick }: NavbarProps) {
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-gray-700">{user?.name}</p>
               <div className="flex items-center justify-end">
-                <Badge variant={user?.role === 'admin' || user?.role === 'super_admin' ? 'info' : 'success'}>
-                  {user?.role === 'super_admin' ? 'Super Admin' : user?.role === 'admin' ? 'Admin' : 'Student'}
+                <Badge variant={user?.role && adminRoles.includes(user.role) ? 'info' : 'success'}>
+                  {user?.role === 'super_admin' ? 'Super Admin' : user?.role === 'admin' ? 'Admin' : user?.role === 'branch_admin' ? 'Branch Admin' : 'Student'}
                 </Badge>
               </div>
             </div>
             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
               {user?.avatar_url ? (
-                <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                <Image src={user.avatar_url} alt={user.name} width={32} height={32} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-sm font-medium text-gray-600">
                   {user?.name?.charAt(0).toUpperCase()}

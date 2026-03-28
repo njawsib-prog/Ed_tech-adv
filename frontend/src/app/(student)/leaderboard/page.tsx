@@ -6,6 +6,7 @@ import { Table, Badge, Card, Spinner } from '@/components/ui';
 import { apiClient } from '@/lib/apiClient';
 
 interface LeaderboardEntry {
+  id?: string;
   student_id: string;
   student_name: string;
   branch_name?: string;

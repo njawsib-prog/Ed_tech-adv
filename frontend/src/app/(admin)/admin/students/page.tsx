@@ -239,7 +239,7 @@ export default function StudentsPage() {
               onChange={(e) => setBranchFilter(e.target.value)}
             >
               <option value="">All Branches</option>
-              {branches.map((branch) => (
+              {Array.isArray(branches) && branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
@@ -253,7 +253,7 @@ export default function StudentsPage() {
               onChange={(e) => setCourseFilter(e.target.value)}
             >
               <option value="">All Courses</option>
-              {courses.map((course) => (
+              {Array.isArray(courses) && courses.map((course) => (
                 <option key={course.id} value={course.id}>
                   {course.name}
                 </option>
@@ -338,7 +338,7 @@ export default function StudentsPage() {
                     required
                   >
                     <option value="">Select Branch</option>
-                    {branches.map((branch) => (
+                    {Array.isArray(branches) && branches.map((branch) => (
                       <option key={branch.id} value={branch.id}>
                         {branch.name}
                       </option>
@@ -356,7 +356,7 @@ export default function StudentsPage() {
                     required
                   >
                     <option value="">Select Course</option>
-                    {courses.map((course) => (
+                    {Array.isArray(courses) && courses.map((course) => (
                       <option key={course.id} value={course.id}>
                         {course.name}
                       </option>
