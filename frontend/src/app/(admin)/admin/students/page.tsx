@@ -71,7 +71,7 @@ export default function StudentsPage() {
   const fetchCourses = async () => {
     try {
       const response = await apiClient.get('/admin/courses');
-      setCourses(response.data || []);
+      setCourses(response.data.courses || []);
     } catch (error) {
       console.error('Failed to fetch courses:', error);
     }

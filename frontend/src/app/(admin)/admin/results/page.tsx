@@ -81,7 +81,7 @@ export default function ResultsPage() {
       const response = await apiClient.get('/admin/tests', {
         params: { limit: 100 }
       });
-      setTests(response.data.tests || []);
+      setTests(Array.isArray(response.data) ? response.data : (response.data.tests || []));
     } catch (error) {
       console.error('Error fetching tests:', error);
     }
@@ -100,7 +100,7 @@ export default function ResultsPage() {
 
       const response = await apiClient.get<ResultsResponse>(`/admin/results?${params}`);
       setResults(response.data.results || []);
-      setTotalPages(response.data.pagination.totalPages);
+      setTotalPages(response.data.pagination?.totalPages ?? 1);
     } catch (error) {
       console.error('Error fetching results:', error);
     } finally {

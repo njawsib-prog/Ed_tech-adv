@@ -113,7 +113,7 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
     }
 
     res.json({
-      students: data,
+      students: data || [],
       total: count || 0,
       page: Number(page),
       limit: Number(limit),
