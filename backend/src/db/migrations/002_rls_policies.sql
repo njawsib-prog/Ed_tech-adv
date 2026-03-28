@@ -146,3 +146,21 @@ CREATE POLICY "Students can mark materials viewed" ON material_views
 -- Admins have full access to all tables (using service role key)
 -- Note: In production, you would create admin-specific policies based on admin role
 -- For now, we'll use the service role key for admin operations which bypasses RLS
+
+-- Admins can insert notifications
+CREATE POLICY "Admins can insert notifications" ON notifications
+    FOR INSERT WITH CHECK (
+        created_by IN (SELECT id FROM admins)
+    );
+
+-- Admins can update notifications
+CREATE POLICY "Admins can update notifications" ON notifications
+    FOR UPDATE USING (
+        created_by IN (SELECT id FROM admins)
+    );
+
+-- Admins can delete notifications
+CREATE POLICY "Admins can delete notifications" ON notifications
+    FOR DELETE USING (
+        created_by IN (SELECT id FROM admins)
+    );

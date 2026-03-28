@@ -9,6 +9,12 @@ interface AuthRequest extends Request {
   };
 }
 
+const VALID_TARGET_TYPES = ['all', 'course', 'student'] as const;
+const VALID_CATEGORIES = ['announcement', 'test_alert', 'result', 'admin_message'] as const;
+
+type TargetType = typeof VALID_TARGET_TYPES[number];
+type Category = typeof VALID_CATEGORIES[number];
+
 // Get all notifications
 export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
@@ -57,30 +63,40 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
 export const createNotification = async (req: AuthRequest, res: Response) => {
   try {
     console.log("REQ BODY:", req.body);
-    const instituteId = req.user?.instituteId;
     const adminId = req.user?.id;
-    const { title, message, type, targetAudience, actionUrl, scheduledAt } = req.body;
+    const { title, message, category, targetType, targetId } = req.body;
 
     if (!title || !message) {
       return res.status(400).json({ error: 'Title and message are required' });
     }
 
+    const validTargetTypes: readonly string[] = VALID_TARGET_TYPES;
+    if (targetType && !validTargetTypes.includes(targetType)) {
+      console.warn(`createNotification: invalid targetType "${targetType}", defaulting to "all"`);
+    }
+    const resolvedTargetType: TargetType = validTargetTypes.includes(targetType) ? targetType : 'all';
+
+    const validCategories: readonly string[] = VALID_CATEGORIES;
+    if (category && !validCategories.includes(category)) {
+      console.warn(`createNotification: invalid category "${category}", defaulting to "announcement"`);
+    }
+    const resolvedCategory: Category = validCategories.includes(category) ? category : 'announcement';
+
     const { data, error } = await supabaseAdmin
       .from('notifications')
       .insert({
-        institute_id: instituteId,
         title,
         message,
-        type: type || 'info',
-        target_audience: targetAudience || 'all',
-        action_url: actionUrl,
-        scheduled_at: scheduledAt,
+        category: resolvedCategory,
+        target_type: resolvedTargetType,
+        target_id: targetId || null,
         created_by: adminId
       })
       .select()
       .single();
 
     if (error) {
+      console.error("SUPABASE ERROR:", error);
       return res.status(400).json({ error: error.message });
     }
 
