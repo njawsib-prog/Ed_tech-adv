@@ -65,7 +65,7 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production' || !isLocalhost,
-      sameSite: isLocalhost ? 'lax' : ('none' as const),
+      sameSite: (isLocalhost ? 'lax' : 'none') as 'lax' | 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
 
@@ -148,7 +148,7 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production' || !isLocalhost,
-      sameSite: isLocalhost ? 'lax' : ('none' as const),
+      sameSite: (isLocalhost ? 'lax' : 'none') as 'lax' | 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
 
@@ -190,7 +190,7 @@ export const logout = (req: Request, res: Response): void => {
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production' || !isLocalhost,
-    sameSite: isLocalhost ? 'lax' : ('none' as const),
+    sameSite: (isLocalhost ? 'lax' : 'none') as 'lax' | 'none',
   };
 
   console.log('[Auth] Logout - clearing cookie with options:', {
