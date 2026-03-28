@@ -23,7 +23,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
       .select('*', { count: 'exact' })
       .eq('institute_id', instituteId)
       .or(`target_audience.eq.all,target_audience.eq.students`)
-      .not('sent_at', 'is', null);
+      .or(`target_type.eq.all,target_type.eq.course,target_type.eq.student`);
 
     if (unreadOnly === 'true') {
       query = query.not('id', 'in', `(SELECT notification_id FROM notification_reads WHERE student_id = '${studentId}')`);
@@ -35,6 +35,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
     const { data: notifications, error, count } = await query;
 
     if (error) {
+      console.error('Student getNotifications DB error:', JSON.stringify(error));
       return res.status(400).json({ error: error.message });
     }
 
@@ -106,7 +107,7 @@ export const markAllAsRead = async (req: AuthRequest, res: Response) => {
       .select('id')
       .eq('institute_id', instituteId)
       .or(`target_audience.eq.all,target_audience.eq.students`)
-      .not('sent_at', 'is', null);
+      .or(`target_type.eq.all,target_type.eq.course,target_type.eq.student`);
 
     if (!notifications || notifications.length === 0) {
       return res.json({ message: 'No notifications to mark' });
@@ -144,7 +145,7 @@ export const getUnreadCount = async (req: AuthRequest, res: Response) => {
       .select('*', { count: 'exact', head: true })
       .eq('institute_id', instituteId)
       .or(`target_audience.eq.all,target_audience.eq.students`)
-      .not('sent_at', 'is', null);
+      .or(`target_type.eq.all,target_type.eq.course,target_type.eq.student`);
 
     const { count: read } = await supabaseAdmin
       .from('notification_reads')

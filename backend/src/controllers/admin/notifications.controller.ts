@@ -26,8 +26,9 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
     if (type) {
       query = query.eq('type', type);
     }
+    // Support both targetAudience (new) and target_type (original) for filtering
     if (targetAudience) {
-      query = query.eq('target_audience', targetAudience);
+      query = query.or(`target_audience.eq.${targetAudience},target_type.eq.${targetAudience}`);
     }
 
     query = query.order('created_at', { ascending: false });
@@ -36,6 +37,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
     const { data, error, count } = await query;
 
     if (error) {
+      console.error('Admin getNotifications DB error:', JSON.stringify(error));
       return res.status(400).json({ error: error.message });
     }
 
@@ -60,14 +62,16 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
     console.log("REQ BODY:", req.body);
     const adminId = req.user?.id;
     const instituteId = req.user?.instituteId;
-    const { title, message, type, targetAudience, actionUrl, scheduledAt } = req.body;
+    const { title, message, type, targetAudience, actionUrl, scheduledAt, targetType } = req.body;
 
     if (!title || !message) {
       return res.status(400).json({ error: 'Title and message are required' });
     }
 
     const VALID_TYPES = ['info', 'warning', 'success', 'error'] as const;
+    // Support both target_audience (new) and target_type (original)
     const VALID_AUDIENCES = ['all', 'students', 'admins'] as const;
+    const VALID_TARGET_TYPES = ['all', 'course', 'student'] as const;
 
     if (type && !VALID_TYPES.includes(type)) {
       console.warn(`createNotification: invalid type "${type}", defaulting to "info"`);
@@ -75,9 +79,15 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
     if (targetAudience && !VALID_AUDIENCES.includes(targetAudience)) {
       console.warn(`createNotification: invalid targetAudience "${targetAudience}", defaulting to "all"`);
     }
+    if (targetType && !VALID_TARGET_TYPES.includes(targetType)) {
+      console.warn(`createNotification: invalid targetType "${targetType}", defaulting to "all"`);
+    }
 
     const resolvedType = VALID_TYPES.includes(type) ? type : 'info';
-    const resolvedAudience = VALID_AUDIENCES.includes(targetAudience) ? targetAudience : 'all';
+    // Prefer targetAudience if provided, fall back to targetType
+    const resolvedAudience = VALID_AUDIENCES.includes(targetAudience) 
+      ? targetAudience 
+      : (VALID_TARGET_TYPES.includes(targetType) ? targetType : 'all');
 
     const { data, error } = await supabaseAdmin
       .from('notifications')
@@ -86,8 +96,11 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
         message,
         type: resolvedType,
         target_audience: resolvedAudience,
+        target_type: resolvedAudience, // Also set original column for compatibility
         action_url: actionUrl || null,
         scheduled_at: scheduledAt || null,
+        // Set sent_at for immediate visibility - allows students to see notifications right away
+        sent_at: scheduledAt ? null : new Date().toISOString(),
         institute_id: instituteId,
         created_by: adminId
       })
@@ -95,7 +108,18 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
       .single();
 
     if (error) {
-      console.error("SUPABASE ERROR:", error);
+      console.error("SUPABASE ERROR (createNotification):", JSON.stringify(error));
+      console.error("Insert data:", JSON.stringify({
+        title,
+        message,
+        type: resolvedType,
+        target_audience: resolvedAudience,
+        target_type: resolvedAudience,
+        action_url: actionUrl,
+        scheduled_at: scheduledAt,
+        institute_id: instituteId,
+        created_by: adminId
+      }));
       return res.status(400).json({ error: error.message });
     }
 
