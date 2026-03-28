@@ -11,7 +11,16 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     // Get token from cookie
     const token = req.cookies?.token;
 
+    console.log('[AuthMiddleware] Checking authentication:', {
+      path: req.path,
+      method: req.method,
+      hasCookieToken: !!token,
+      cookieTokenPrefix: token?.substring(0, 20) + '...',
+      allCookies: Object.keys(req.cookies || {})
+    });
+
     if (!token) {
+      console.log('[AuthMiddleware] No token found in cookies');
       res.status(401).json({ error: 'Authentication required' });
       return;
     }
@@ -19,11 +28,18 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     // Verify token
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
 
+    console.log('[AuthMiddleware] Token verified successfully:', {
+      userId: decoded.id,
+      userRole: decoded.role,
+      userEmail: decoded.email
+    });
+
     // Attach user to request
     req.user = decoded;
 
     next();
   } catch (error) {
+    console.error('[AuthMiddleware] Token verification failed:', error);
     res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
