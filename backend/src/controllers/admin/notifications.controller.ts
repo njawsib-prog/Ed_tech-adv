@@ -53,21 +53,24 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
 
     if (error) {
       console.error('Admin getNotifications DB error:', JSON.stringify(error));
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
     res.json({
-      notifications: data,
-      pagination: {
-        total: count || 0,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil((count || 0) / Number(limit))
+      success: true,
+      data: {
+        notifications: data,
+        pagination: {
+          total: count || 0,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil((count || 0) / Number(limit))
+        }
       }
     });
   } catch (error) {
     console.error('Get notifications error:', error);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
+    res.status(500).json({ success: false, error: 'Failed to fetch notifications' });
   }
 };
 
@@ -80,7 +83,7 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
     const { title, message, type, targetAudience, actionUrl, scheduledAt, targetType } = req.body;
 
     if (!title || !message) {
-      return res.status(400).json({ error: 'Title and message are required' });
+      return res.status(400).json({ success: false, error: 'Title and message are required' });
     }
 
     const VALID_TYPES = ['info', 'warning', 'success', 'error'] as const;
@@ -138,13 +141,13 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
         institute_id: instituteId || null,
         created_by: adminId
       }));
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.status(201).json(data);
+    res.status(201).json({ success: true, data });
   } catch (error) {
     console.error('Create notification error:', error);
-    res.status(500).json({ error: 'Failed to create notification' });
+    res.status(500).json({ success: false, error: 'Failed to create notification' });
   }
 };
 
@@ -173,13 +176,13 @@ export const updateNotification = async (req: AuthRequest, res: Response) => {
     const { data, error } = await updateNotifQuery.select().single();
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Update notification error:', error);
-    res.status(500).json({ error: 'Failed to update notification' });
+    res.status(500).json({ success: false, error: 'Failed to update notification' });
   }
 };
 
@@ -199,13 +202,13 @@ export const deleteNotification = async (req: AuthRequest, res: Response) => {
     const { error } = await deleteNotifQuery;
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.json({ message: 'Notification deleted successfully' });
+    res.json({ success: true, message: 'Notification deleted successfully' });
   } catch (error) {
     console.error('Delete notification error:', error);
-    res.status(500).json({ error: 'Failed to delete notification' });
+    res.status(500).json({ success: false, error: 'Failed to delete notification' });
   }
 };
 
@@ -226,7 +229,7 @@ export const broadcastNotification = async (req: AuthRequest, res: Response) => 
     const { data: notification, error: fetchError } = await broadcastFetchQuery.single();
 
     if (fetchError || !notification) {
-      return res.status(404).json({ error: 'Notification not found' });
+      return res.status(404).json({ success: false, error: 'Notification not found' });
     }
 
     // Mark as sent
@@ -236,15 +239,15 @@ export const broadcastNotification = async (req: AuthRequest, res: Response) => 
       .eq('id', id);
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
     // TODO: Integrate with push notification service or email
 
-    res.json({ message: 'Notification broadcasted successfully', notification });
+    res.json({ success: true, message: 'Notification broadcasted successfully', data: { notification } });
   } catch (error) {
     console.error('Broadcast notification error:', error);
-    res.status(500).json({ error: 'Failed to broadcast notification' });
+    res.status(500).json({ success: false, error: 'Failed to broadcast notification' });
   }
 };
 
@@ -294,21 +297,24 @@ export const getComplaints = async (req: AuthRequest, res: Response) => {
     const { data, error, count } = await query;
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
     res.json({
-      complaints: data,
-      pagination: {
-        total: count || 0,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil((count || 0) / Number(limit))
+      success: true,
+      data: {
+        complaints: data,
+        pagination: {
+          total: count || 0,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil((count || 0) / Number(limit))
+        }
       }
     });
   } catch (error) {
     console.error('Get complaints error:', error);
-    res.status(500).json({ error: 'Failed to fetch complaints' });
+    res.status(500).json({ success: false, error: 'Failed to fetch complaints' });
   }
 };
 
@@ -346,13 +352,13 @@ export const getComplaintById = async (req: AuthRequest, res: Response) => {
       .single();
 
     if (error) {
-      return res.status(404).json({ error: 'Complaint not found' });
+      return res.status(404).json({ success: false, error: 'Complaint not found' });
     }
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Get complaint error:', error);
-    res.status(500).json({ error: 'Failed to fetch complaint' });
+    res.status(500).json({ success: false, error: 'Failed to fetch complaint' });
   }
 };
 
@@ -365,7 +371,7 @@ export const replyToComplaint = async (req: AuthRequest, res: Response) => {
     const { message, updateStatus } = req.body;
 
     if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+      return res.status(400).json({ success: false, error: 'Message is required' });
     }
 
     // Create reply
@@ -381,7 +387,7 @@ export const replyToComplaint = async (req: AuthRequest, res: Response) => {
       .single();
 
     if (replyError) {
-      return res.status(400).json({ error: replyError.message });
+      return res.status(400).json({ success: false, error: replyError.message });
     }
 
     // Update complaint status if provided
@@ -392,10 +398,10 @@ export const replyToComplaint = async (req: AuthRequest, res: Response) => {
         .eq('id', id);
     }
 
-    res.status(201).json(reply);
+    res.status(201).json({ success: true, data: reply });
   } catch (error) {
     console.error('Reply to complaint error:', error);
-    res.status(500).json({ error: 'Failed to reply to complaint' });
+    res.status(500).json({ success: false, error: 'Failed to reply to complaint' });
   }
 };
 
@@ -418,13 +424,13 @@ export const updateComplaintStatus = async (req: AuthRequest, res: Response) => 
       .single();
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Update complaint status error:', error);
-    res.status(500).json({ error: 'Failed to update complaint' });
+    res.status(500).json({ success: false, error: 'Failed to update complaint' });
   }
 };
 
@@ -470,21 +476,24 @@ export const getFeedback = async (req: AuthRequest, res: Response) => {
     const { data, error, count } = await feedbackQuery;
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
     res.json({
-      feedback: data,
-      pagination: {
-        total: count || 0,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil((count || 0) / Number(limit))
+      success: true,
+      data: {
+        feedback: data,
+        pagination: {
+          total: count || 0,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil((count || 0) / Number(limit))
+        }
       }
     });
   } catch (error) {
     console.error('Get feedback error:', error);
-    res.status(500).json({ error: 'Failed to fetch feedback' });
+    res.status(500).json({ success: false, error: 'Failed to fetch feedback' });
   }
 };
 
@@ -502,7 +511,7 @@ export const getFeedbackStats = async (req: AuthRequest, res: Response) => {
     const { data, error } = await feedbackStatsQuery;
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
     const totalFeedback = data?.length || 0;
@@ -521,13 +530,16 @@ export const getFeedbackStats = async (req: AuthRequest, res: Response) => {
     }, {} as Record<string, number>);
 
     res.json({
-      totalFeedback,
-      averageRating,
-      ratingDistribution,
-      typeDistribution
+      success: true,
+      data: {
+        totalFeedback,
+        averageRating,
+        ratingDistribution,
+        typeDistribution
+      }
     });
   } catch (error) {
     console.error('Get feedback stats error:', error);
-    res.status(500).json({ error: 'Failed to fetch feedback statistics' });
+    res.status(500).json({ success: false, error: 'Failed to fetch feedback statistics' });
   }
 };

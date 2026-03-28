@@ -59,8 +59,11 @@ export default function StudentResultsPage() {
         apiClient.get('/student/results'),
         apiClient.get('/student/performance')
       ]);
-      setResults(resultsRes.data || []);
-      setPerformance(performanceRes.data);
+      // Handle standardized responses - use type assertion for compatibility
+      const resultsData = (resultsRes.data as any).success ? (resultsRes.data as any).data : resultsRes.data;
+      const performanceData = (performanceRes.data as any).success ? (performanceRes.data as any).data : performanceRes.data;
+      setResults(resultsData || []);
+      setPerformance(performanceData);
     } catch (error) {
       console.error('Error fetching results:', error);
     } finally {

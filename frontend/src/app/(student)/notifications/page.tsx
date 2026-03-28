@@ -19,8 +19,18 @@ interface Notification {
 }
 
 interface NotificationsResponse {
-  notifications: Notification[];
-  pagination: {
+  success?: boolean;
+  data?: {
+    notifications: Notification[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+  notifications?: Notification[];
+  pagination?: {
     total: number;
     page: number;
     limit: number;
@@ -48,9 +58,11 @@ export default function NotificationsPage() {
       params.append('page', page.toString());
       if (filter === 'unread') params.append('unreadOnly', 'true');
 
-      const response = await apiClient.get<NotificationsResponse>(`/student/notifications?${params}`);
-      setNotifications(response.data.notifications || []);
-      setTotalPages(response.data.pagination.totalPages);
+      const response = await apiClient.get(`/student/notifications?${params}`);
+      // Handle standardized response - use type assertion for compatibility
+      const responseData = ((response.data as any).success ? (response.data as any).data : response.data) || {};
+      setNotifications(responseData.notifications || []);
+      setTotalPages(responseData.pagination?.totalPages || 1);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -61,7 +73,9 @@ export default function NotificationsPage() {
   const fetchUnreadCount = async () => {
     try {
       const response = await apiClient.get('/student/notifications/unread-count');
-      setUnreadCount(response.data.unreadCount);
+      // Handle standardized response - use type assertion for compatibility
+      const responseData = ((response.data as any).success ? (response.data as any).data : response.data) || {};
+      setUnreadCount(responseData.unreadCount || 0);
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }

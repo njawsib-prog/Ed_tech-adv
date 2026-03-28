@@ -42,13 +42,13 @@ export const getMyResults = async (req: AuthRequest, res: Response) => {
       .order('submitted_at', { ascending: false });
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    res.json(data);
+    res.json({ success: true, data: data || [] });
   } catch (error) {
     console.error('Get my results error:', error);
-    res.status(500).json({ error: 'Failed to fetch results' });
+    res.status(500).json({ success: false, error: 'Failed to fetch results' });
   }
 };
 
@@ -86,13 +86,13 @@ export const getResultDetails = async (req: AuthRequest, res: Response) => {
       .single();
 
     if (error) {
-      return res.status(404).json({ error: 'Result not found' });
+      return res.status(404).json({ success: false, error: 'Result not found' });
     }
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Get result details error:', error);
-    res.status(500).json({ error: 'Failed to fetch result details' });
+    res.status(500).json({ success: false, error: 'Failed to fetch result details' });
   }
 };
 
@@ -120,7 +120,7 @@ export const getMyPerformance = async (req: AuthRequest, res: Response) => {
       .eq('institute_id', instituteId);
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
     }
 
     const totalTests = results?.length || 0;
@@ -154,18 +154,21 @@ export const getMyPerformance = async (req: AuthRequest, res: Response) => {
       : 0;
 
     res.json({
-      totalTests,
-      passedTests,
-      passRate: totalTests > 0 ? (passedTests / totalTests) * 100 : 0,
-      averagePercentage,
-      totalMarksObtained,
-      totalMarksPossible,
-      subjectPerformance,
-      recentAverage,
-      improvementTrend: recentAverage > averagePercentage ? 'improving' : recentAverage < averagePercentage ? 'declining' : 'stable'
+      success: true,
+      data: {
+        totalTests,
+        passedTests,
+        passRate: totalTests > 0 ? (passedTests / totalTests) * 100 : 0,
+        averagePercentage,
+        totalMarksObtained,
+        totalMarksPossible,
+        subjectPerformance,
+        recentAverage,
+        improvementTrend: recentAverage > averagePercentage ? 'improving' : recentAverage < averagePercentage ? 'declining' : 'stable'
+      },
     });
   } catch (error) {
     console.error('Get my performance error:', error);
-    res.status(500).json({ error: 'Failed to fetch performance' });
+    res.status(500).json({ success: false, error: 'Failed to fetch performance' });
   }
 };

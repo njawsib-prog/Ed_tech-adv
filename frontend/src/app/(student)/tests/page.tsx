@@ -22,7 +22,9 @@ export default function StudentTestsPage() {
     const fetchTests = async () => {
       try {
         const response = await apiClient.get('/student/tests');
-        setTests(response.data);
+        // Handle standardized response - use type assertion for compatibility
+        const responseData = (response.data as any).success ? (response.data as any).data : response.data;
+        setTests(responseData);
       } catch (error) {
         console.error('Failed to fetch tests:', error);
       } finally {
@@ -97,12 +99,12 @@ export default function StudentTestsPage() {
                     <div className="flex justify-between">
                       <span className="text-student-body text-gray-600">Score:</span>
                       <span className="font-bold text-sm" style={{ color: 'var(--color-primary)' }}>
-                        {test.result.score}/{test.result.total}
+                        {test.result.score}/{test.result.total_marks}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-student-body text-gray-600">Accuracy:</span>
-                      <span className="text-sm">{Math.round(test.result.accuracy)}%</span>
+                      <span className="text-student-body text-gray-600">Percentage:</span>
+                      <span className="text-sm">{Math.round(test.result.percentage)}%</span>
                     </div>
                   </div>
                 )}

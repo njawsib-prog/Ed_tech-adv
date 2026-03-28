@@ -11,9 +11,9 @@ export const getBranches = async (req: AuthRequest, res: Response): Promise<void
 
     if (error) throw error;
 
-    res.json({ data });
+    res.json({ success: true, data: data || [] });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -34,9 +34,9 @@ export const createBranch = async (req: AuthRequest, res: Response): Promise<voi
 
     if (error) throw error;
 
-    res.status(201).json({ data });
+    res.status(201).json({ success: true, data });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -54,9 +54,9 @@ export const updateBranch = async (req: AuthRequest, res: Response): Promise<voi
 
     if (error) throw error;
 
-    res.json({ data });
+    res.json({ success: true, data });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -71,8 +71,8 @@ export const deleteBranch = async (req: AuthRequest, res: Response): Promise<voi
 
     if (error) throw error;
 
-    res.json({ message: 'Branch deleted successfully' });
+    res.json({ success: true, message: 'Branch deleted successfully' });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
