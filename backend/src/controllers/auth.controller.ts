@@ -59,13 +59,26 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
       { expiresIn: JWT_EXPIRY } as any
     );
 
-    // Set httpOnly cookie
-    res.cookie('token', token, {
+    // Determine cookie options based on environment and origin
+    const origin = req.headers.origin;
+    const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production' || !isLocalhost,
+      sameSite: isLocalhost ? 'lax' : ('none' as const),
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    };
+
+    console.log('[Auth] Admin login successful - setting cookie with options:', {
+      origin,
+      isLocalhost,
+      secure: cookieOptions.secure,
+      sameSite: cookieOptions.sameSite,
+      tokenPrefix: token.substring(0, 20) + '...'
     });
+
+    // Set httpOnly cookie
+    res.cookie('token', token, cookieOptions);
 
     res.json({
       success: true,
@@ -129,13 +142,26 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
       { expiresIn: JWT_EXPIRY } as any
     );
 
-    // Set httpOnly cookie
-    res.cookie('token', token, {
+    // Determine cookie options based on environment and origin
+    const origin = req.headers.origin;
+    const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production' || !isLocalhost,
+      sameSite: isLocalhost ? 'lax' : ('none' as const),
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    };
+
+    console.log('[Auth] Student login successful - setting cookie with options:', {
+      origin,
+      isLocalhost,
+      secure: cookieOptions.secure,
+      sameSite: cookieOptions.sameSite,
+      tokenPrefix: token.substring(0, 20) + '...'
     });
+
+    // Set httpOnly cookie
+    res.cookie('token', token, cookieOptions);
 
     res.json({
       success: true,
@@ -158,11 +184,23 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
 
 // Logout
 export const logout = (req: Request, res: Response): void => {
-  res.clearCookie('token', {
+  // Determine cookie options based on environment and origin (must match login)
+  const origin = req.headers.origin;
+  const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+  const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production' || !isLocalhost,
+    sameSite: isLocalhost ? 'lax' : ('none' as const),
+  };
+
+  console.log('[Auth] Logout - clearing cookie with options:', {
+    origin,
+    isLocalhost,
+    secure: cookieOptions.secure,
+    sameSite: cookieOptions.sameSite,
   });
+
+  res.clearCookie('token', cookieOptions);
   res.json({ success: true, message: 'Logged out successfully' });
 };
 
@@ -170,6 +208,14 @@ export const logout = (req: Request, res: Response): void => {
 export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = (req as any).user;
+
+    console.log('[Auth] getCurrentUser called - user from auth middleware:', {
+      hasUser: !!user,
+      userId: user?.id,
+      userRole: user?.role,
+      hasCookieToken: !!req.cookies?.token,
+      cookieTokenPrefix: req.cookies?.token?.substring(0, 20) + '...'
+    });
 
     if (!user) {
       res.status(401).json({ success: false, error: 'Not authenticated' });
