@@ -17,11 +17,13 @@ export default function StudentLayout({ children, title = 'Student Dashboard' }:
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
+  const studentRoles = ['student'];
+
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
         router.push('/');
-      } else if (user.role !== 'student') {
+      } else if (!studentRoles.includes(user.role)) {
         router.push('/admin');
       }
     }
@@ -35,7 +37,7 @@ export default function StudentLayout({ children, title = 'Student Dashboard' }:
     );
   }
 
-  if (!user || user.role !== 'student') {
+  if (!user || !studentRoles.includes(user.role)) {
     return null;
   }
 

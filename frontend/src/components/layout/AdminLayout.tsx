@@ -17,11 +17,13 @@ export default function AdminLayout({ children, title = 'Admin Dashboard' }: Adm
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
+  const adminRoles = ['admin', 'super_admin', 'branch_admin'];
+
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
         router.push('/admin/login');
-      } else if (user.role !== 'admin' && user.role !== 'super_admin') {
+      } else if (!adminRoles.includes(user.role)) {
         router.push('/');
       }
     }
@@ -35,7 +37,7 @@ export default function AdminLayout({ children, title = 'Admin Dashboard' }: Adm
     );
   }
 
-  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+  if (!user || !adminRoles.includes(user.role)) {
     return null;
   }
 

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useInstitute } from '@/hooks/useInstitute';
+import Image from 'next/image';
 
 interface NavItem {
   label: string;
@@ -163,9 +164,11 @@ export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
           {/* Logo */}
           <div className="p-4 border-b border-white/10">
             <Link href={role === 'admin' ? '/admin' : '/dashboard'} className="flex items-center space-x-3">
-              <img
+              <Image
                 src={config.logoUrl}
                 alt={config.name}
+                width={32}
+                height={32}
                 className="h-8 w-auto"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';

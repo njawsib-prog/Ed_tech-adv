@@ -33,11 +33,13 @@ export default function StudentRootLayout({ children }: { children: React.ReactN
   const router = useRouter();
   const pathname = usePathname();
 
+  const studentRoles = ['student'];
+
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
         router.push('/');
-      } else if (user.role !== 'student') {
+      } else if (!studentRoles.includes(user.role)) {
         router.push('/admin');
       }
     }
@@ -51,7 +53,7 @@ export default function StudentRootLayout({ children }: { children: React.ReactN
     );
   }
 
-  if (!user || user.role !== 'student') {
+  if (!user || !studentRoles.includes(user.role)) {
     return null;
   }
 

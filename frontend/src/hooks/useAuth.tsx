@@ -7,7 +7,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'student' | 'super_admin';
+  role: 'admin' | 'student' | 'super_admin' | 'branch_admin';
   course_id?: string;
   avatar_url?: string;
 }

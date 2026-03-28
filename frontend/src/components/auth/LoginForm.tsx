@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import axios from 'axios';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -124,9 +125,11 @@ export default function LoginForm({ role, onSuccess }: LoginFormProps) {
     <div className="w-full max-w-md mx-auto">
       {/* Logo and Title */}
       <div className="text-center mb-8">
-        <img
+        <Image
           src={config.logoUrl}
           alt={config.name}
+          width={48}
+          height={48}
           className="h-12 w-auto mx-auto mb-4"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
