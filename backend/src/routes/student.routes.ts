@@ -40,7 +40,7 @@ import {
   updateNotificationPreferences,
 } from '../controllers/student/profile.controller';
 import { getMyAttendance } from '../controllers/student/attendance.controller';
-import { getMyPayments } from '../controllers/student/payment.controller';
+import { getMyPayments, getMyPaymentReceipt } from '../controllers/student/payment.controller';
 import { getStreakInfo, updateStreak } from '../controllers/student/streak.controller';
 import { getLeaderboard } from '../controllers/leaderboard.controller';
 import { authMiddleware } from '../middleware/authMiddleware';
@@ -119,6 +119,7 @@ router.get('/attendance', getMyAttendance);
 
 // Payments
 router.get('/payments', getMyPayments);
+router.get('/payments/:id/receipt', getMyPaymentReceipt);
 
 // Streak
 router.get('/streak', getStreakInfo);
