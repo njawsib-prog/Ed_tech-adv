@@ -1,7 +1,7 @@
 -- ============================================================
 -- EdTech Platform — Complete Production-Grade PostgreSQL Schema
 -- ============================================================
--- Version : 1.0.0
+-- Version : 2.0.0  (reconstructed from live backend + frontend code)
 -- Database : PostgreSQL 14+ (tested with Supabase / Railway)
 -- Encoding : UTF-8, snake_case naming throughout
 --
@@ -12,7 +12,7 @@
 --   4.  attendance     (per student/course/date)
 --   5.  tests          (total_marks, passing_marks, time_limit_mins)
 --   6.  questions      (MCQ, correct_option alias correct_answer)
---   7.  results        (score, percentage, PASS/FAIL, time_taken_seconds)
+--   7.  results        (score, percentage, passed/failed, time_taken_seconds)
 --   8.  payments       (amount, method, status, receipt_signature)
 --   9.  receipts       (unique number, HMAC signature, institute branding)
 --  10.  notifications  (broadcast / per-user, read-tracking)
@@ -25,7 +25,29 @@
 -- COMPATIBILITY:
 --   • All column names match backend API response keys exactly.
 --   • All TypeScript types in frontend/src/types/index.ts map 1-to-1.
---   • backward-compat VIEWs for legacy `students` and `admins` names.
+--   • Backward-compat VIEWs for legacy `students` and `admins` table names
+--     including INSTEAD OF INSERT triggers so controllers can INSERT into
+--     the views without specifying `role`.
+--   • `created_by_admin` helper view makes study_materials PostgREST
+--     embedding work without changing backend query code.
+--
+-- ─── MISMATCHES FIXED FROM v1.0.0 ────────────────────────────
+--   1.  users.is_active    — removed GENERATED ALWAYS; now writable boolean
+--   2.  courses.is_active  — removed GENERATED ALWAYS; now writable boolean
+--   3.  result_status enum — changed 'PASS'/'FAIL' → 'passed'/'failed'
+--       (matches student test controller & frontend types exactly)
+--   4.  notifications      — added action_url, scheduled_at, sent_at columns
+--   5.  notification_reads — added institute_id column
+--   6.  feedback           — replaced target_type/target_id/comment with
+--                            type/subject/message (matches all controllers)
+--   7.  complaints         — added priority column
+--   8.  activity_log       — added institute_id column
+--   9.  tests              — added subject_id FK to subjects
+--  10.  institute_config   — added contact_email, contact_phone, features
+--  11.  users              — added phone column (student profile controller)
+--  12.  user_role enum     — added 'branch_admin' (in backend types/index.ts)
+--  13.  students/admins views — added INSTEAD OF INSERT triggers
+--  14.  created_by_admin view — enables study_materials PostgREST embedding
 -- ============================================================
 
 -- ──────────────────────────────────────────────
@@ -39,8 +61,9 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";   -- provides gen_random_uuid()
 -- ──────────────────────────────────────────────
 
 -- User roles
+-- 'branch_admin' added to match backend/src/types/index.ts UserRole type
 DO $$ BEGIN
-  CREATE TYPE user_role AS ENUM ('admin', 'super_admin', 'student');
+  CREATE TYPE user_role AS ENUM ('admin', 'super_admin', 'student', 'branch_admin');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- User / student account status
@@ -84,8 +107,13 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Result pass/fail status
+-- 'PASS'/'FAIL' renamed to 'passed'/'failed' to match:
+--   • student/test.controller.ts: `percentage >= 40 ? 'passed' : 'failed'`
+--   • student/results.controller.ts: `r.status === 'passed'`
+--   • admin/results.controller.ts:  `r.status === 'passed'`
+--   • frontend/src/types/index.ts:  status: 'passed' | 'failed' | 'pending'
 DO $$ BEGIN
-  CREATE TYPE result_status AS ENUM ('PASS', 'FAIL', 'pending');
+  CREATE TYPE result_status AS ENUM ('passed', 'failed', 'pending');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Payment status
@@ -131,8 +159,14 @@ CREATE TABLE IF NOT EXISTS institute_config (
     primary_color     CHAR(7)     DEFAULT '#2E86C1',
     secondary_color   CHAR(7)     DEFAULT '#1A7A4A',
     support_email     VARCHAR(255),
+    -- contact_email / contact_phone added to match admin/settings.controller.ts
+    -- updateInstituteConfig which explicitly reads/writes these fields.
+    contact_email     VARCHAR(255),
+    contact_phone     VARCHAR(20),
     website_url       TEXT,
     address           TEXT,
+    -- features: arbitrary JSONB blob written by admin settings controller.
+    features          JSONB       DEFAULT '{}'::jsonb,
     created_at        TIMESTAMPTZ DEFAULT NOW(),
     updated_at        TIMESTAMPTZ DEFAULT NOW()
 );
@@ -180,13 +214,19 @@ CREATE TABLE IF NOT EXISTS users (
     -- Access control
     role              user_role   NOT NULL DEFAULT 'student',
     status            account_status NOT NULL DEFAULT 'ACTIVE',
-    is_active         BOOLEAN     GENERATED ALWAYS AS (status = 'ACTIVE') STORED,
+    -- is_active: regular writable boolean (NOT generated) so controllers can
+    -- directly set it: `.insert({is_active: true})` / `.update({is_active: false})`.
+    -- Kept in sync with `status` by application logic (both fields are written
+    -- together in every controller that changes account state).
+    is_active         BOOLEAN     DEFAULT TRUE,
 
     -- Student-only fields (NULL for admins)
     course_id         UUID,                          -- FK added after courses table
     roll_number       VARCHAR(50),
+    -- phone: used by student/profile.controller.ts getProfile / updateProfile
+    phone             VARCHAR(20),
 
-    -- Engagement
+    -- Engagement / streak tracking (student/streak.controller.ts)
     current_streak    INTEGER     DEFAULT 0,
     max_streak        INTEGER     DEFAULT 0,
     last_activity_date DATE,
@@ -204,7 +244,95 @@ CREATE OR REPLACE VIEW students AS
     SELECT * FROM users WHERE role = 'student';
 
 CREATE OR REPLACE VIEW admins AS
-    SELECT * FROM users WHERE role IN ('admin', 'super_admin');
+    SELECT * FROM users WHERE role IN ('admin', 'super_admin', 'branch_admin');
+
+-- ──────────────────────────────────────────────────────────────
+-- INSTEAD OF INSERT triggers
+-- These are needed because controllers INSERT into the views without
+-- specifying the `role` column (e.g. admin/student.controller.ts just
+-- inserts {name, email, password_hash, course_id, is_active, status}).
+-- The trigger sets `role` to the correct value automatically.
+-- ──────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION trg_students_instead_insert()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO users (
+        id, institute_id, branch_id,
+        name, email, password_hash, avatar_url,
+        role, status, is_active,
+        course_id, roll_number, phone,
+        current_streak, max_streak, last_activity_date, last_login,
+        created_at, updated_at
+    ) VALUES (
+        COALESCE(NEW.id, gen_random_uuid()),
+        NEW.institute_id, NEW.branch_id,
+        NEW.name, NEW.email, NEW.password_hash, NEW.avatar_url,
+        'student',                          -- always force role = student
+        COALESCE(NEW.status, 'ACTIVE'),
+        COALESCE(NEW.is_active, TRUE),
+        NEW.course_id, NEW.roll_number, NEW.phone,
+        COALESCE(NEW.current_streak, 0),
+        COALESCE(NEW.max_streak, 0),
+        NEW.last_activity_date, NEW.last_login,
+        COALESCE(NEW.created_at, NOW()),
+        COALESCE(NEW.updated_at, NOW())
+    );
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_students_insert ON students;
+CREATE TRIGGER trg_students_insert
+    INSTEAD OF INSERT ON students
+    FOR EACH ROW EXECUTE FUNCTION trg_students_instead_insert();
+
+CREATE OR REPLACE FUNCTION trg_admins_instead_insert()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO users (
+        id, institute_id, branch_id,
+        name, email, password_hash, avatar_url,
+        role, status, is_active,
+        current_streak, max_streak, last_activity_date, last_login,
+        created_at, updated_at
+    ) VALUES (
+        COALESCE(NEW.id, gen_random_uuid()),
+        NEW.institute_id, NEW.branch_id,
+        NEW.name, NEW.email, NEW.password_hash, NEW.avatar_url,
+        -- Use the role provided by the caller (admin/super_admin/branch_admin),
+        -- defaulting to 'admin' if omitted.
+        COALESCE(NEW.role, 'admin'),
+        COALESCE(NEW.status, 'ACTIVE'),
+        COALESCE(NEW.is_active, TRUE),
+        COALESCE(NEW.current_streak, 0),
+        COALESCE(NEW.max_streak, 0),
+        NEW.last_activity_date, NEW.last_login,
+        COALESCE(NEW.created_at, NOW()),
+        COALESCE(NEW.updated_at, NOW())
+    );
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_admins_insert ON admins;
+CREATE TRIGGER trg_admins_insert
+    INSTEAD OF INSERT ON admins
+    FOR EACH ROW EXECUTE FUNCTION trg_admins_instead_insert();
+
+-- ──────────────────────────────────────────────────────────────
+-- created_by_admin VIEW
+-- Supabase / PostgREST resolves embedded resources by view/table name.
+-- admin/materials.controller.ts queries:
+--   .select('... created_by_admin (id, name) ...')
+-- PostgREST finds `study_materials.created_by → users.id` and then
+-- resolves `created_by_admin` as this view (which is a strict subset of
+-- `users`). This avoids renaming the `created_by` column in the table.
+-- ──────────────────────────────────────────────────────────────
+CREATE OR REPLACE VIEW created_by_admin AS
+    SELECT id, name, email, role, avatar_url, institute_id, branch_id,
+           is_active, status, created_at, updated_at
+    FROM users
+    WHERE role IN ('admin', 'super_admin', 'branch_admin');
 
 -- ══════════════════════════════════════════════
 -- MODULE 2: COURSES
@@ -243,7 +371,12 @@ CREATE TABLE IF NOT EXISTS courses (
     terms_and_conditions  TEXT,
     is_published          BOOLEAN     DEFAULT FALSE,
     status                course_status NOT NULL DEFAULT 'active',
-    is_active             BOOLEAN     GENERATED ALWAYS AS (status = 'active') STORED,
+    -- is_active: regular writable boolean (NOT generated).
+    -- admin/course.controller.ts explicitly sets is_active:
+    --   createCourse: `is_active: true`
+    --   updateCourse: `is_active: status === 'active'`
+    -- Both `status` and `is_active` are kept in sync by the controller.
+    is_active             BOOLEAN     DEFAULT TRUE,
 
     created_at            TIMESTAMPTZ DEFAULT NOW(),
     updated_at            TIMESTAMPTZ DEFAULT NOW()
@@ -307,6 +440,10 @@ CREATE TABLE IF NOT EXISTS tests (
     branch_id       UUID        REFERENCES branches(id) ON DELETE SET NULL,
     course_id       UUID        REFERENCES courses(id) ON DELETE SET NULL,
     created_by      UUID        REFERENCES users(id) ON DELETE SET NULL,
+    -- subject_id: FK to subjects added after subjects table is created (below).
+    -- Used in admin/results.controller.ts getStudentPerformance:
+    --   `tests (id, title, subject_id, subjects (name))`
+    subject_id      UUID,
 
     title           VARCHAR(255) NOT NULL,
     description     TEXT,
@@ -417,6 +554,11 @@ CREATE TABLE IF NOT EXISTS results (
     marks_obtained      INTEGER     GENERATED ALWAYS AS (score) STORED,  -- alias per spec
 
     -- Outcome
+    -- status uses lowercase 'passed'/'failed'/'pending' to match:
+    --   • student/test.controller.ts: `percentage >= 40 ? 'passed' : 'failed'`
+    --   • admin/results.controller.ts: `r.status === 'passed'`
+    --   • frontend/src/types/index.ts: status: 'passed' | 'failed' | 'pending'
+    -- (v1.0.0 had 'PASS'/'FAIL' — that was incompatible with live code.)
     status              result_status NOT NULL DEFAULT 'pending',
     passing_marks       INTEGER,    -- snapshot of test.passing_marks at submission time
 
@@ -525,6 +667,19 @@ CREATE TABLE IF NOT EXISTS notifications (
 
     branch_id           UUID        REFERENCES branches(id) ON DELETE SET NULL,
 
+    -- Navigation helper URL (absolute or relative)
+    -- Used by admin/notifications.controller.ts: `action_url: actionUrl || null`
+    action_url          TEXT,
+
+    -- Scheduling & delivery timestamps
+    -- scheduled_at: admin can schedule a future send time
+    --   createNotification: `scheduled_at: scheduledAt || null`
+    scheduled_at        TIMESTAMPTZ,
+    -- sent_at: when the notification was actually broadcast
+    --   createNotification: `sent_at: scheduledAt ? null : new Date().toISOString()`
+    --   broadcastNotification: `sent_at: new Date().toISOString()`
+    sent_at             TIMESTAMPTZ,
+
     created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -533,6 +688,9 @@ CREATE TABLE IF NOT EXISTS notification_reads (
     id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     notification_id     UUID        NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
     student_id          UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    -- institute_id added to match student/notifications.controller.ts markAsRead:
+    --   `.insert({ notification_id: id, student_id: studentId, institute_id: instituteId })`
+    institute_id        UUID        REFERENCES institute_config(id) ON DELETE CASCADE,
     read_at             TIMESTAMPTZ DEFAULT NOW(),
 
     CONSTRAINT notification_reads_unique UNIQUE (notification_id, student_id)
@@ -565,6 +723,16 @@ CREATE TABLE IF NOT EXISTS subjects (
     created_at  TIMESTAMPTZ DEFAULT NOW(),
     updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Deferred FK: tests.subject_id → subjects.id
+-- Added here (after subjects is created) because tests is created earlier.
+-- Used by admin/results.controller.ts getStudentPerformance:
+--   `tests (id, title, subject_id, subjects (name))`
+ALTER TABLE tests
+    ADD CONSTRAINT fk_tests_subject
+    FOREIGN KEY (subject_id)
+    REFERENCES subjects(id)
+    ON DELETE SET NULL;
 
 -- Study materials (PDFs, videos, documents, links, text)
 CREATE TABLE IF NOT EXISTS study_materials (
@@ -608,6 +776,12 @@ CREATE TABLE IF NOT EXISTS complaints (
     title       VARCHAR(255) NOT NULL,
     description TEXT         NOT NULL,
     status      complaint_status NOT NULL DEFAULT 'open',
+    -- priority: added to match student/notifications.controller.ts submitComplaint
+    --   `.insert({ ..., priority: priority || 'medium', ... })`
+    -- and admin/notifications.controller.ts updateComplaintStatus
+    --   `if (priority) updateData.priority = priority`
+    priority    VARCHAR(20) DEFAULT 'medium'
+                    CHECK (priority IN ('low','medium','high','urgent')),
     created_at  TIMESTAMPTZ DEFAULT NOW(),
     updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
@@ -623,15 +797,24 @@ CREATE TABLE IF NOT EXISTS complaint_replies (
 );
 
 -- Course / material / test feedback with star rating
+-- FIELD NAMES FIXED: previous schema used target_type/target_id/comment which
+-- did NOT match any controller code. Correct field names derived from:
+--   • student/notifications.controller.ts submitFeedback:
+--       `.insert({ institute_id, student_id, type, rating, subject, message })`
+--   • student/notifications.controller.ts getMyFeedback:
+--       `.select('id, type, rating, subject, created_at')`
+--   • admin/notifications.controller.ts getFeedback:
+--       `.select('id, type, rating, subject, message, created_at, students(...)')`
 CREATE TABLE IF NOT EXISTS feedback (
-    id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    institute_id UUID       REFERENCES institute_config(id) ON DELETE SET NULL,
-    student_id  UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    target_type VARCHAR(50) NOT NULL CHECK (target_type IN ('test','material','course')),
-    target_id   UUID,
-    rating      INTEGER     NOT NULL CHECK (rating BETWEEN 1 AND 5),
-    comment     TEXT,
-    created_at  TIMESTAMPTZ DEFAULT NOW()
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    institute_id UUID        REFERENCES institute_config(id) ON DELETE SET NULL,
+    student_id   UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type         VARCHAR(50) NOT NULL
+                     CHECK (type IN ('course','test','platform','other')),
+    rating       INTEGER     NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    subject      VARCHAR(255),               -- optional short subject/title
+    message      TEXT,                       -- optional long-form feedback text
+    created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Key-value settings per institute (supports upsert on institute_id,key)
@@ -647,13 +830,18 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 -- Immutable audit trail for all user actions
+-- institute_id added to match:
+--   • admin/settings.controller.ts getActivityLog: `.eq('institute_id', instituteId)`
+--   • admin/materials.controller.ts createMaterial: inserts `institute_id: instituteId`
+--   • student/profile.controller.ts getActivity: `.eq('institute_id', instituteId)`
 CREATE TABLE IF NOT EXISTS activity_log (
-    id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_type   VARCHAR(50) NOT NULL CHECK (user_type IN ('admin','student')),
-    user_id     UUID        NOT NULL,
-    action      VARCHAR(255) NOT NULL,
-    details     JSONB,
-    created_at  TIMESTAMPTZ DEFAULT NOW()
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    institute_id UUID        REFERENCES institute_config(id) ON DELETE SET NULL,
+    user_type    VARCHAR(50) NOT NULL CHECK (user_type IN ('admin','student')),
+    user_id      UUID        NOT NULL,
+    action       VARCHAR(255) NOT NULL,
+    details      JSONB,
+    created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ╔══════════════════════════════════════════════════════════════════╗
@@ -758,7 +946,7 @@ CREATE INDEX IF NOT EXISTS idx_complaints_category    ON complaints(category);
 -- feedback
 CREATE INDEX IF NOT EXISTS idx_feedback_student_id    ON feedback(student_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_institute_id  ON feedback(institute_id);
-CREATE INDEX IF NOT EXISTS idx_feedback_target_type   ON feedback(target_type);
+CREATE INDEX IF NOT EXISTS idx_feedback_type          ON feedback(type);
 
 -- settings (UNIQUE constraint on the table already creates the backing index)
 
