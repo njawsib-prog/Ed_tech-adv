@@ -119,7 +119,7 @@ export default function StudentTestsPage() {
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => router.push(`/tests/${test.id}/result`)}
+                      onClick={() => router.push(`/results/${test.result?.id}`)}
                     >
                       View Result
                     </Button>

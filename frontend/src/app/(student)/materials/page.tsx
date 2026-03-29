@@ -56,7 +56,7 @@ export default function StudyMaterialsPage() {
       if (filters.search) params.append('search', filters.search);
 
       const response = await apiClient.get(`/student/materials?${params}`);
-      setMaterials(response.data || []);
+      setMaterials((response.data as any)?.data || []);
     } catch (error) {
       console.error('Error fetching materials:', error);
     } finally {
@@ -67,7 +67,7 @@ export default function StudyMaterialsPage() {
   const fetchRecentMaterials = async () => {
     try {
       const response = await apiClient.get('/student/materials/recent');
-      setRecentMaterials(response.data || []);
+      setRecentMaterials((response.data as any)?.data || []);
     } catch (error) {
       console.error('Error fetching recent materials:', error);
     }

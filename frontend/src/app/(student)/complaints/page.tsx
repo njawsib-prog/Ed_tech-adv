@@ -38,7 +38,7 @@ export default function ComplaintsPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: 'academic',
+    category: 'test_issue',
     priority: 'medium'
   });
 
@@ -93,7 +93,7 @@ export default function ComplaintsPage() {
     setFormData({
       title: '',
       description: '',
-      category: 'academic',
+      category: 'test_issue',
       priority: 'medium'
     });
   };
@@ -215,10 +215,10 @@ export default function ComplaintsPage() {
                 onChange={(e) => setFormData(f => ({ ...f, category: e.target.value }))}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[var(--primary-color)] focus:outline-none"
               >
-                <option value="academic">Academic</option>
-                <option value="technical">Technical</option>
-                <option value="administrative">Administrative</option>
-                <option value="other">Other</option>
+                  <option value="test_issue">Test Issue</option>
+                  <option value="technical">Technical</option>
+                  <option value="content">Content / Academic</option>
+                  <option value="other">Other / Administrative</option>
               </select>
             </div>
             <div>

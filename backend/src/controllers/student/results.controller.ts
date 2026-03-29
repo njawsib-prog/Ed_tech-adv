@@ -77,7 +77,16 @@ export const getResultDetails = async (req: AuthRequest, res: Response) => {
           total_marks,
           passing_marks,
           time_limit_mins,
-          questions
+          questions (
+            id,
+            question_text,
+            option_a,
+            option_b,
+            option_c,
+            option_d,
+            correct_option,
+            order_index
+          )
         )
       `)
       .eq('id', id)

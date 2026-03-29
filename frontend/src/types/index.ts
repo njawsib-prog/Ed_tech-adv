@@ -46,20 +46,27 @@ export interface TestDetails {
 // Questions & Answers
 // ---------------------------------------------------------------------------
 
+/** DB schema for a question row (questions table). Field names match DB exactly. */
 export interface Question {
   id: string;
-  questionText: string;
-  type: 'mcq' | 'trueFalse' | 'shortAnswer';
-  options?: string[];
-  correctAnswer: string;
-  marks: number;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  /** One of 'a' | 'b' | 'c' | 'd' */
+  correct_option: string;
+  order_index: number;
 }
 
-export interface Answer {
-  questionIndex: number;
-  selected?: string;
-  text?: string;
-  marked?: boolean;
+/** One entry in the `results.answers` JSONB array, written by test.controller submitTest. */
+export interface ResultAnswer {
+  question_id: string;
+  /** The option letter the student chose: 'a' | 'b' | 'c' | 'd', or null if unanswered */
+  selected_option: string | null;
+  /** Correct option letter stored at submission time */
+  correct_option: string;
+  is_correct: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -85,7 +92,8 @@ export interface Result {
   time_taken_seconds: number;
   submitted_at: string;
   started_at: string;
-  answers: Answer[];
+  /** JSONB array of per-question answers stored at submission time */
+  answers: ResultAnswer[];
   tests: TestSummaryInResult;
 }
 

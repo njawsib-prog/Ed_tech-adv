@@ -48,7 +48,7 @@ export const getStudentTests = async (req: StudentRequest, res: Response): Promi
     // Get results for completed tests - use correct field names
     const { data: results } = await supabaseAdmin
       .from('results')
-      .select('test_id, score, total_marks, percentage, submitted_at')
+      .select('id, test_id, score, total_marks, percentage, submitted_at')
       .eq('student_id', studentId);
 
     const resultsMap = new Map(results?.map((r) => [r.test_id, r]) || []);
@@ -158,6 +158,7 @@ export const getTestDetails = async (req: StudentRequest, res: Response): Promis
         course_name: (test.courses as any)?.name,
         question_count: questionCount || 0,
         has_submitted: !!result,
+        result_id: result?.id ?? null,
         assignment_status: assignment.status,
       },
     });
@@ -207,7 +208,7 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
     // Check if test is active
     const { data: test } = await supabaseAdmin
       .from('tests')
-      .select('is_active')
+      .select('is_active, time_limit_mins')
       .eq('id', id)
       .single();
 
@@ -249,6 +250,7 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
       data: {
         questions: shuffled,
         test_id: id,
+        time_limit_mins: test.time_limit_mins || 60,
         start_time: new Date().toISOString(),
       },
     });
