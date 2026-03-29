@@ -1,12 +1,12 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import config, { SAFE_MODE } from '../config/env';
+import { mockSupabase } from './mockSupabase';
 
 // Create the appropriate Supabase client based on environment
 let supabaseAdmin: SupabaseClient;
 
 if (SAFE_MODE) {
-  // Import mock client for safe mode
-  const { mockSupabase } = require('./mockSupabase');
+  // Use mock client for safe mode (development / no credentials)
   console.log('[DB] Using mock Supabase client (SAFE MODE)');
   supabaseAdmin = mockSupabase as unknown as SupabaseClient;
 } else {

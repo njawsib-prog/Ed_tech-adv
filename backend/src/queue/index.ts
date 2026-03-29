@@ -1,4 +1,6 @@
 import config, { SAFE_MODE } from '../config/env';
+import { MockQueue } from './mockQueue';
+import Bull from 'bull';
 
 // Queue names
 export const QUEUE_NAMES = {
@@ -58,8 +60,6 @@ let emailQueue: any;
 
 if (SAFE_MODE) {
   // Use mock queues when in SAFE MODE
-  const { MockQueue } = require('./mockQueue');
-
   console.log('[Queue] Using mock queues (SAFE MODE)');
   
   testPublishQueue = new MockQueue(QUEUE_NAMES.TEST_PUBLISH, {
@@ -103,9 +103,7 @@ if (SAFE_MODE) {
   });
 } else {
   // Use real Bull queues
-  const Queue = require('bull');
-  
-  testPublishQueue = new Queue(QUEUE_NAMES.TEST_PUBLISH, {
+  testPublishQueue = new Bull(QUEUE_NAMES.TEST_PUBLISH, {
     redis: redisOptions,
     defaultJobOptions: {
       removeOnComplete: 10,
@@ -118,7 +116,7 @@ if (SAFE_MODE) {
     },
   });
   
-  testAutoSubmitQueue = new Queue(QUEUE_NAMES.TEST_AUTO_SUBMIT, {
+  testAutoSubmitQueue = new Bull(QUEUE_NAMES.TEST_AUTO_SUBMIT, {
     redis: redisOptions,
     defaultJobOptions: {
       removeOnComplete: 10,
@@ -131,7 +129,7 @@ if (SAFE_MODE) {
     },
   });
   
-  notificationQueue = new Queue(QUEUE_NAMES.NOTIFICATIONS, {
+  notificationQueue = new Bull(QUEUE_NAMES.NOTIFICATIONS, {
     redis: redisOptions,
     defaultJobOptions: {
       removeOnComplete: 100,
@@ -140,7 +138,7 @@ if (SAFE_MODE) {
     },
   });
   
-  emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
+  emailQueue = new Bull(QUEUE_NAMES.EMAIL, {
     redis: redisOptions,
     defaultJobOptions: {
       removeOnComplete: 100,
