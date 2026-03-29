@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { AuthRequest, JWTPayload, UserRole } from '../types';
 import config from '../config/env';
 import { supabaseAdmin } from '../db/supabaseAdmin';
+import { isStudentActive, resolveStudentStatus } from '../utils/studentStatus';
 
 // Use JWT secret from centralized config
 const JWT_SECRET = config.jwtSecret;
@@ -51,10 +52,10 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       }
 
       // Support both new 'status' column and legacy 'is_active' boolean
-      const studentStatus: string = student.status ?? (student.is_active ? 'ACTIVE' : 'INACTIVE');
-      if (studentStatus !== 'ACTIVE') {
+      if (!isStudentActive(student)) {
+        const effectiveStatus = resolveStudentStatus(student);
         const message =
-          studentStatus === 'SUSPENDED'
+          effectiveStatus === 'SUSPENDED'
             ? 'Your account has been suspended. Please contact your institution.'
             : 'Your account is inactive. Please contact your institution.';
         res.status(403).json({ error: message, code: 'ACCOUNT_INACTIVE' });
