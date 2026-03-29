@@ -61,11 +61,13 @@ export default function ProfilePage() {
         apiClient.get('/student/profile'),
         apiClient.get('/student/profile/activity')
       ]);
-      setProfile(profileRes.data);
-      setActivity(activityRes.data || []);
+      const profileData = profileRes.data.data || profileRes.data;
+      const activityData = activityRes.data.data || activityRes.data || [];
+      setProfile(profileData);
+      setActivity(activityData);
       setFormData({
-        name: profileRes.data.name || '',
-        phone: profileRes.data.phone || ''
+        name: profileData.name || '',
+        phone: profileData.phone || ''
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
