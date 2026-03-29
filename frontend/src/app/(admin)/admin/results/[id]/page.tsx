@@ -8,73 +8,32 @@ import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import Spinner from '@/components/ui/Spinner';
 import PageWrapper from '@/components/layout/PageWrapper';
-
-interface Result {
-  id: string;
-  score: number;
-  total_marks: number;
-  percentage: number;
-  status: 'passed' | 'failed' | 'pending';
-  time_taken_seconds: number;
-  submitted_at: string;
-  started_at: string;
-  answers: Answer[];
-  tests: {
-    id: string;
-    title: string;
-    total_marks: number;
-    passing_marks: number;
-    time_limit_mins: number;
-    questions: Question[];
-  };
-  students: {
-    id: string;
-    name: string;
-    email: string;
-    roll_number: string;
-  };
-}
-
-interface Question {
-  id: string;
-  questionText: string;
-  type: 'mcq' | 'trueFalse' | 'shortAnswer';
-  options?: string[];
-  correctAnswer: string;
-  marks: number;
-}
-
-interface Answer {
-  questionIndex: number;
-  selected?: string;
-  text?: string;
-  marked?: boolean;
-}
+import type { AdminResult } from '@/types';
 
 export default function ResultDetailPage() {
   const router = useRouter();
   const params = useParams();
   const resultId = params.id as string;
   
-  const [result, setResult] = useState<Result | null>(null);
+  const [result, setResult] = useState<AdminResult | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchResult();
-  }, [resultId]);
+    const fetchResult = async () => {
+      try {
+        const response = await apiClient.get(`/admin/results/${resultId}`);
+        setResult(response.data as AdminResult);
+      } catch (error) {
+        console.error('Error fetching result:', error);
+        alert('Failed to load result');
+        router.back();
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchResult = async () => {
-    try {
-      const response = await apiClient.get(`/admin/results/${resultId}`);
-      setResult(response.data);
-    } catch (error) {
-      console.error('Error fetching result:', error);
-      alert('Failed to load result');
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchResult();
+  }, [resultId, router]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -164,7 +123,7 @@ export default function ResultDetailPage() {
                 <p className="text-lg font-semibold">
                   {result.time_taken_seconds ? formatTime(result.time_taken_seconds) : 'N/A'}
                 </p>
-                <p className="text-sm text-gray-500">Allowed: {result.tests.duration_minutes} min</p>
+                <p className="text-sm text-gray-500">Allowed: {result.tests.time_limit_mins} min</p>
               </div>
             </div>
           </div>

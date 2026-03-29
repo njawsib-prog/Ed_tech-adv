@@ -34,7 +34,7 @@ export function startTestAutoSubmitWorker() {
       // Get test questions for scoring
       const { data: test, error: testError } = await supabaseAdmin
         .from('tests')
-        .select('id, passing_marks, duration_minutes')
+        .select('id, passing_marks, time_limit_mins')
         .eq('id', testId)
         .single();
 
