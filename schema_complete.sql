@@ -988,7 +988,7 @@ VALUES
         'bbbbbbbb-0000-0000-0000-000000000001',
         'Super Admin',
         'superadmin@apexedtech.com',
-        '$2b$12$KIXqfqpZhZQPltTrCVFfpuX8v6lHYWa.QPNB8p2Av9gOH0XP9oxLm',
+        '$2a$12$YQxDSwgObFBcZQzW69mZ0uIc58tmF1.EKlIS4pkX5aVyb9BRaL//.',
         'super_admin',
         'ACTIVE'
     ),
@@ -998,7 +998,7 @@ VALUES
         'bbbbbbbb-0000-0000-0000-000000000001',
         'Jane Admin',
         'admin@apexedtech.com',
-        '$2b$12$KIXqfqpZhZQPltTrCVFfpuX8v6lHYWa.QPNB8p2Av9gOH0XP9oxLm',
+        '$2a$12$YQxDSwgObFBcZQzW69mZ0uIc58tmF1.EKlIS4pkX5aVyb9BRaL//.',
         'admin',
         'ACTIVE'
     ),
@@ -1008,7 +1008,7 @@ VALUES
         'bbbbbbbb-0000-0000-0000-000000000001',
         'Alice Student',
         'alice@example.com',
-        '$2b$12$KIXqfqpZhZQPltTrCVFfpuX8v6lHYWa.QPNB8p2Av9gOH0XP9oxLm',
+        '$2a$12$YQxDSwgObFBcZQzW69mZ0uIc58tmF1.EKlIS4pkX5aVyb9BRaL//.',
         'student',
         'ACTIVE'
     ),
@@ -1018,7 +1018,7 @@ VALUES
         'bbbbbbbb-0000-0000-0000-000000000001',
         'Bob Student',
         'bob@example.com',
-        '$2b$12$KIXqfqpZhZQPltTrCVFfpuX8v6lHYWa.QPNB8p2Av9gOH0XP9oxLm',
+        '$2a$12$YQxDSwgObFBcZQzW69mZ0uIc58tmF1.EKlIS4pkX5aVyb9BRaL//.',
         'student',
         'ACTIVE'
     )

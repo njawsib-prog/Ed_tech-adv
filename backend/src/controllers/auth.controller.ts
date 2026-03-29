@@ -26,16 +26,24 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
       return;
     }
 
-    // Fetch admin by email
+    // Fetch admin by email – do NOT filter on is_active here so that
+    // admins whose is_active column is NULL (e.g. created before the
+    // column was added) are not silently rejected with "Invalid credentials".
     const { data: admin, error } = await supabaseAdmin
       .from('admins')
       .select('*')
       .eq('email', email)
-      .eq('is_active', true)
       .single();
 
     if (error || !admin) {
       res.status(401).json({ success: false, error: 'Invalid credentials' });
+      return;
+    }
+
+    // Check that the admin account is active.  Treat NULL is_active as active
+    // for backward-compatibility with rows that pre-date the column.
+    if (admin.is_active === false || admin.status === 'INACTIVE' || admin.status === 'SUSPENDED') {
+      res.status(403).json({ success: false, error: 'Your account is inactive. Please contact support.' });
       return;
     }
 

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import { supabaseAdmin } from '../../db/supabaseAdmin';
 
 interface AuthRequest extends Request {
@@ -154,7 +155,6 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Admin not found' });
     }
 
-    const bcrypt = require('bcrypt');
     const isValid = await bcrypt.compare(currentPassword, admin.password_hash);
 
     if (!isValid) {
@@ -246,7 +246,6 @@ export const createAdmin = async (req: AuthRequest, res: Response) => {
     }
 
     // Hash password
-    const bcrypt = require('bcrypt');
     const passwordHash = await bcrypt.hash(password, 10);
 
     const { data, error } = await supabaseAdmin
@@ -256,7 +255,9 @@ export const createAdmin = async (req: AuthRequest, res: Response) => {
         name,
         email,
         password_hash: passwordHash,
-        role
+        role,
+        is_active: true,
+        status: 'ACTIVE',
       })
       .select()
       .single();
