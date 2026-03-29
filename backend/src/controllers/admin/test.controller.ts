@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { supabaseAdmin } from '../../db/supabaseAdmin';
+import { parseCSV, validateCSVStructure } from '../../utils/csvParser';
 
 interface TestRequest extends Request {
   user?: {
@@ -294,57 +295,120 @@ export const bulkUploadQuestions = async (req: Request, res: Response): Promise<
     }
 
     const csvContent = file.buffer.toString('utf-8');
-    const rows = csvContent.split('\n').filter((row) => row.trim());
+    const rows = parseCSV(csvContent);
+
+    // Validate CSV structure - expecting 6 columns: question_text, option_a, option_b, option_c, option_d, correct_option
+    const validation = validateCSVStructure(rows, 6);
+    if (!validation.isValid) {
+      res.status(400).json({ error: validation.error });
+      return;
+    }
 
     const questions: any[] = [];
-    const errors: { row: number; error: string }[] = [];
+    const errors: { row: number; error: string; data?: any }[] = [];
+    const validOptions = ['a', 'b', 'c', 'd'];
 
+    // Process data rows (skip header)
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      const fields = row.split(',').map((f) => f.trim().replace(/^"|"$/g, ''));
 
-      if (fields.length < 6) {
-        errors.push({ row: i + 1, error: 'Missing fields' });
+      // Skip empty rows
+      if (row.length === 0 || row.every(field => !field.trim())) {
         continue;
       }
 
-      const [question_text, option_a, option_b, option_c, option_d, correct_option] = fields;
+      if (row.length < 6) {
+        errors.push({ 
+          row: i + 1, 
+          error: `Missing fields. Expected 6 columns, found ${row.length}`,
+          data: row 
+        });
+        continue;
+      }
 
-      if (!['a', 'b', 'c', 'd'].includes(correct_option.toLowerCase())) {
-        errors.push({ row: i + 1, error: 'Invalid correct_option (must be a, b, c, or d)' });
+      const [question_text, option_a, option_b, option_c, option_d, correct_option] = row;
+
+      // Validate required fields
+      if (!question_text || !option_a || !option_b || !option_c || !option_d || !correct_option) {
+        errors.push({ 
+          row: i + 1, 
+          error: 'Missing required fields (question_text, option_a, option_b, option_c, option_d, correct_option)',
+          data: row 
+        });
+        continue;
+      }
+
+      // Validate correct_option
+      const normalizedCorrectOption = correct_option.toLowerCase().trim();
+      if (!validOptions.includes(normalizedCorrectOption)) {
+        errors.push({ 
+          row: i + 1, 
+          error: `Invalid correct_option "${correct_option}". Must be one of: a, b, c, d`,
+          data: row 
+        });
         continue;
       }
 
       questions.push({
         test_id: id,
-        question_text,
-        option_a,
-        option_b,
-        option_c,
-        option_d,
-        correct_option: correct_option.toLowerCase(),
-        order_index: i - 1,
+        question_text: question_text.trim(),
+        option_a: option_a.trim(),
+        option_b: option_b.trim(),
+        option_c: option_c.trim(),
+        option_d: option_d.trim(),
+        correct_option: normalizedCorrectOption,
+        order_index: questions.length, // Sequential order index
       });
     }
 
+    // Insert questions to database
     if (questions.length > 0) {
-      const { error } = await supabaseAdmin
-        .from('questions')
-        .insert(questions);
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('questions')
+          .insert(questions)
+          .select('id, question_text, order_index');
 
-      if (error) {
-        res.status(400).json({ error: error.message });
+        if (error) {
+          console.error('[BulkUploadQuestions] Database error:', error);
+          res.status(400).json({ 
+            error: `Database error: ${error.message}`,
+            successful: 0,
+            attempted: questions.length 
+          });
+          return;
+        }
+
+        res.json({
+          success: data?.length || 0,
+          attempted: questions.length,
+          errors,
+          message: `Successfully uploaded ${data?.length || 0} questions. ${errors.length} rows had errors.`
+        });
+      } catch (dbError: any) {
+        console.error('[BulkUploadQuestions] Database exception:', dbError);
+        res.status(500).json({ 
+          error: `Database error: ${dbError.message}`,
+          successful: 0,
+          attempted: questions.length 
+        });
         return;
       }
+    } else if (errors.length > 0) {
+      res.status(400).json({
+        success: 0,
+        attempted: 0,
+        errors,
+        message: 'No valid questions found in the CSV file. Please check the format and data.'
+      });
+    } else {
+      res.status(400).json({
+        error: 'No data rows found in the CSV file'
+      });
     }
-
-    res.json({
-      success: questions.length,
-      errors,
-    });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Bulk upload questions error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: `Internal server error: ${error.message}` });
   }
 };
 

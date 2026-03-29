@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { getStudentDashboard } from '../controllers/student/dashboard.controller';
 import {
   getStudentTests,
@@ -47,6 +48,23 @@ import { requireRole } from '../middleware/roleMiddleware';
 
 const router = Router();
 
+// Rate limiters for sensitive operations
+const passwordChangeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 attempts per hour
+  message: { error: 'Too many password change attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const accountDeletionLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 3, // 3 attempts per day
+  message: { error: 'Too many account deletion attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // All routes require authentication and student role
 router.use(authMiddleware);
 router.use(requireRole('student'));
@@ -90,9 +108,9 @@ router.get('/feedback', getMyFeedback);
 // Profile
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
-router.post('/profile/change-password', changePassword);
+router.post('/profile/change-password', passwordChangeLimiter, changePassword);
 router.get('/profile/activity', getActivity);
-router.delete('/profile', deleteAccount);
+router.delete('/profile', accountDeletionLimiter, deleteAccount);
 router.get('/profile/notification-preferences', getNotificationPreferences);
 router.put('/profile/notification-preferences', updateNotificationPreferences);
 

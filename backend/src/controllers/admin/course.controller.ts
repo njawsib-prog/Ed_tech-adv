@@ -64,16 +64,71 @@ export const getCourses = async (req: Request, res: Response): Promise<void> => 
 // Create a new course
 export const createCourse = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, description } = req.body;
+    const { 
+      name, 
+      description, 
+      duration_hours, 
+      price, 
+      level, 
+      category, 
+      is_published 
+    } = req.body;
 
     if (!name) {
       res.status(400).json({ error: 'Course name is required' });
       return;
     }
 
+    // Build insert data with extended fields
+    const insertData: any = { 
+      name, 
+      description, 
+      is_active: true 
+    };
+
+    // Add extended metadata fields if provided
+    if (duration_hours !== undefined) {
+      const parsedDuration = Number(duration_hours);
+      if (isNaN(parsedDuration) || parsedDuration < 0) {
+        res.status(400).json({ error: 'Invalid duration_hours. Must be a positive number.' });
+        return;
+      }
+      insertData.duration_hours = parsedDuration;
+    }
+
+    if (price !== undefined) {
+      const parsedPrice = Number(price);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        res.status(400).json({ error: 'Invalid price. Must be a non-negative number.' });
+        return;
+      }
+      insertData.price = parsedPrice;
+    }
+
+    if (level !== undefined) {
+      const validLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
+      if (!validLevels.includes(level)) {
+        res.status(400).json({ error: `Invalid level. Must be one of: ${validLevels.join(', ')}` });
+        return;
+      }
+      insertData.level = level;
+    }
+
+    if (category !== undefined) {
+      if (typeof category !== 'string' || category.length > 100) {
+        res.status(400).json({ error: 'Invalid category. Must be a string with max 100 characters.' });
+        return;
+      }
+      insertData.category = category.trim();
+    }
+
+    if (is_published !== undefined) {
+      insertData.is_published = Boolean(is_published);
+    }
+
     const { data, error } = await supabaseAdmin
       .from('courses')
-      .insert({ name, description, is_active: true })
+      .insert(insertData)
       .select()
       .single();
 
@@ -93,12 +148,63 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
 export const updateCourse = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, description, is_active } = req.body;
+    const { 
+      name, 
+      description, 
+      is_active,
+      duration_hours, 
+      price, 
+      level, 
+      category, 
+      is_published 
+    } = req.body;
 
     const updateData: any = { updated_at: new Date().toISOString() };
+    
+    // Basic fields
     if (name) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (typeof is_active === 'boolean') updateData.is_active = is_active;
+
+    // Extended metadata fields
+    if (duration_hours !== undefined) {
+      const parsedDuration = Number(duration_hours);
+      if (isNaN(parsedDuration) || parsedDuration < 0) {
+        res.status(400).json({ error: 'Invalid duration_hours. Must be a positive number.' });
+        return;
+      }
+      updateData.duration_hours = parsedDuration;
+    }
+
+    if (price !== undefined) {
+      const parsedPrice = Number(price);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        res.status(400).json({ error: 'Invalid price. Must be a non-negative number.' });
+        return;
+      }
+      updateData.price = parsedPrice;
+    }
+
+    if (level !== undefined) {
+      const validLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
+      if (!validLevels.includes(level)) {
+        res.status(400).json({ error: `Invalid level. Must be one of: ${validLevels.join(', ')}` });
+        return;
+      }
+      updateData.level = level;
+    }
+
+    if (category !== undefined) {
+      if (typeof category !== 'string' || category.length > 100) {
+        res.status(400).json({ error: 'Invalid category. Must be a string with max 100 characters.' });
+        return;
+      }
+      updateData.category = category.trim();
+    }
+
+    if (is_published !== undefined) {
+      updateData.is_published = Boolean(is_published);
+    }
 
     const { data, error } = await supabaseAdmin
       .from('courses')
