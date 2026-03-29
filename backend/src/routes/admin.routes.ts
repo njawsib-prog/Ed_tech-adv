@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getDashboardStats } from '../controllers/admin/dashboard.controller';
 import {
   getStudents,
+  getStudentById,
   createStudent,
   bulkUploadStudents,
   updateStudent,
@@ -24,6 +25,7 @@ import {
   recordPayment,
   updatePaymentStatus,
   verifyPayment,
+  getPaymentReceipt,
 } from '../controllers/admin/payment.controller';
 import rateLimit from 'express-rate-limit';
 import { authMiddleware } from '../middleware/authMiddleware';
@@ -61,6 +63,7 @@ router.get('/dashboard', getDashboardStats);
 router.get('/students', getStudents);
 router.post('/students', createStudent);
 router.post('/students/bulk', bulkUploadLimiter, upload.single('file'), bulkUploadStudents);
+router.get('/students/:id', getStudentById);
 router.put('/students/:id', updateStudent);
 router.delete('/students/:id', deleteStudent);
 
@@ -80,6 +83,7 @@ router.put('/attendance/:id', updateAttendance);
 router.get('/payments', getPayments);
 router.post('/payments', paymentRecordLimiter, recordPayment);
 router.put('/payments/:id', updatePaymentStatus);
+router.get('/payments/:id/receipt', getPaymentReceipt);
 router.get('/payments/:id/verify', verifyPayment);
 
 export default router;

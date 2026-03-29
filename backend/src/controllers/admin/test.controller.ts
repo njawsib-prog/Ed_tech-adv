@@ -1,12 +1,99 @@
 import { Request, Response } from 'express';
 import { supabaseAdmin } from '../../db/supabaseAdmin';
 import { parseCSV, validateCSVStructure } from '../../utils/csvParser';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = require('pdf-parse');
+import mammoth from 'mammoth';
 
 interface TestRequest extends Request {
   user?: {
     id: string;
     role: string;
   };
+}
+
+/**
+ * Parse raw text extracted from PDF/DOCX to extract MCQ questions.
+ * Supports common patterns like:
+ *   Q1. Question text?
+ *   a) Option A   b) Option B   c) Option C   d) Option D
+ *   Answer: a
+ *
+ *   Or numbered:
+ *   1. Question text?
+ *   A. Opt   B. Opt   C. Opt   D. Opt
+ *   Correct: B
+ */
+function parseQuestionsFromText(text: string): Array<{
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option: string;
+}> {
+  const questions: Array<{
+    question_text: string;
+    option_a: string;
+    option_b: string;
+    option_c: string;
+    option_d: string;
+    correct_option: string;
+  }> = [];
+
+  // Normalize newlines and trim
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalized.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+
+  let i = 0;
+  while (i < lines.length) {
+    // Look for a question line (starts with Q1., 1., Q1:, #1, etc.)
+    const qMatch = lines[i].match(/^(?:Q\.?\s*)?(\d+)[.):\s]+(.+)$/i);
+    if (!qMatch) { i++; continue; }
+
+    const questionText = qMatch[2].trim();
+    const opts: Record<string, string> = {};
+    let answerLine = '';
+    let j = i + 1;
+
+    // Collect option lines
+    while (j < lines.length && j < i + 10) {
+      const line = lines[j];
+      // Option pattern: a) ..., a. ..., A) ..., (a) ...
+      const optMatch = line.match(/^[(\s]*([abcdABCD])[).\s]+(.+)$/);
+      if (optMatch) {
+        opts[optMatch[1].toLowerCase()] = optMatch[2].trim();
+        j++;
+        continue;
+      }
+      // Answer line: Answer: a, Correct: a, Ans: A, etc.
+      const ansMatch = line.match(/^(?:answer|correct|ans)[:\s]+([abcdABCD])/i);
+      if (ansMatch) {
+        answerLine = ansMatch[1].toLowerCase();
+        j++;
+        break;
+      }
+      // If we hit another question or unrelated line, stop
+      if (line.match(/^(?:Q\.?\s*)?\d+[.):\s]+/i)) break;
+      j++;
+    }
+
+    // We need at least a, b, c, d and a correct answer
+    if (opts.a && opts.b && opts.c && opts.d && answerLine) {
+      questions.push({
+        question_text: questionText,
+        option_a: opts.a,
+        option_b: opts.b,
+        option_c: opts.c,
+        option_d: opts.d,
+        correct_option: answerLine,
+      });
+    }
+
+    i = j;
+  }
+
+  return questions;
 }
 
 // Get all tests
@@ -294,121 +381,143 @@ export const bulkUploadQuestions = async (req: Request, res: Response): Promise<
       return;
     }
 
-    const csvContent = file.buffer.toString('utf-8');
-    const rows = parseCSV(csvContent);
+    const mimeType = file.mimetype;
+    const originalName = file.originalname.toLowerCase();
 
-    // Validate CSV structure - expecting 6 columns: question_text, option_a, option_b, option_c, option_d, correct_option
-    const validation = validateCSVStructure(rows, 6);
-    if (!validation.isValid) {
-      res.status(400).json({ error: validation.error });
-      return;
+    let parsedQuestions: Array<{
+      question_text: string;
+      option_a: string;
+      option_b: string;
+      option_c: string;
+      option_d: string;
+      correct_option: string;
+    }> = [];
+
+    const errors: { row: number; error: string; data?: unknown }[] = [];
+
+    // ── CSV ─────────────────────────────────────────────────────────────────
+    if (mimeType === 'text/csv' || originalName.endsWith('.csv')) {
+      const csvContent = file.buffer.toString('utf-8');
+      const rows = parseCSV(csvContent);
+
+      const validation = validateCSVStructure(rows, 6);
+      if (!validation.isValid) {
+        res.status(400).json({ error: validation.error });
+        return;
+      }
+
+      const validOptions = ['a', 'b', 'c', 'd'];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length === 0 || row.every((f) => !f.trim())) continue;
+
+        if (row.length < 6) {
+          errors.push({ row: i + 1, error: `Expected 6 columns, found ${row.length}`, data: row });
+          continue;
+        }
+
+        const [question_text, option_a, option_b, option_c, option_d, correct_option] = row;
+
+        if (!question_text || !option_a || !option_b || !option_c || !option_d || !correct_option) {
+          errors.push({ row: i + 1, error: 'Missing required fields', data: row });
+          continue;
+        }
+
+        const normalizedAnswer = correct_option.toLowerCase().trim();
+        if (!validOptions.includes(normalizedAnswer)) {
+          errors.push({ row: i + 1, error: `Invalid correct_option "${correct_option}". Must be a, b, c, or d`, data: row });
+          continue;
+        }
+
+        parsedQuestions.push({
+          question_text: question_text.trim(),
+          option_a: option_a.trim(),
+          option_b: option_b.trim(),
+          option_c: option_c.trim(),
+          option_d: option_d.trim(),
+          correct_option: normalizedAnswer,
+        });
+      }
     }
-
-    const questions: any[] = [];
-    const errors: { row: number; error: string; data?: any }[] = [];
-    const validOptions = ['a', 'b', 'c', 'd'];
-
-    // Process data rows (skip header)
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-
-      // Skip empty rows
-      if (row.length === 0 || row.every(field => !field.trim())) {
-        continue;
-      }
-
-      if (row.length < 6) {
-        errors.push({ 
-          row: i + 1, 
-          error: `Missing fields. Expected 6 columns, found ${row.length}`,
-          data: row 
-        });
-        continue;
-      }
-
-      const [question_text, option_a, option_b, option_c, option_d, correct_option] = row;
-
-      // Validate required fields
-      if (!question_text || !option_a || !option_b || !option_c || !option_d || !correct_option) {
-        errors.push({ 
-          row: i + 1, 
-          error: 'Missing required fields (question_text, option_a, option_b, option_c, option_d, correct_option)',
-          data: row 
-        });
-        continue;
-      }
-
-      // Validate correct_option
-      const normalizedCorrectOption = correct_option.toLowerCase().trim();
-      if (!validOptions.includes(normalizedCorrectOption)) {
-        errors.push({ 
-          row: i + 1, 
-          error: `Invalid correct_option "${correct_option}". Must be one of: a, b, c, d`,
-          data: row 
-        });
-        continue;
-      }
-
-      questions.push({
-        test_id: id,
-        question_text: question_text.trim(),
-        option_a: option_a.trim(),
-        option_b: option_b.trim(),
-        option_c: option_c.trim(),
-        option_d: option_d.trim(),
-        correct_option: normalizedCorrectOption,
-        order_index: questions.length, // Sequential order index
-      });
-    }
-
-    // Insert questions to database
-    if (questions.length > 0) {
+    // ── PDF ─────────────────────────────────────────────────────────────────
+    else if (mimeType === 'application/pdf' || originalName.endsWith('.pdf')) {
       try {
-        const { data, error } = await supabaseAdmin
-          .from('questions')
-          .insert(questions)
-          .select('id, question_text, order_index');
-
-        if (error) {
-          console.error('[BulkUploadQuestions] Database error:', error);
-          res.status(400).json({ 
-            error: `Database error: ${error.message}`,
-            successful: 0,
-            attempted: questions.length 
+        const pdfData = await pdfParse(file.buffer);
+        parsedQuestions = parseQuestionsFromText(pdfData.text);
+        if (parsedQuestions.length === 0) {
+          res.status(400).json({
+            error: 'No questions could be extracted from the PDF. Please ensure questions follow the expected format: numbered questions with A/B/C/D options and an "Answer: X" line.',
           });
           return;
         }
-
-        res.json({
-          success: data?.length || 0,
-          attempted: questions.length,
-          errors,
-          message: `Successfully uploaded ${data?.length || 0} questions. ${errors.length} rows had errors.`
-        });
-      } catch (dbError: any) {
-        console.error('[BulkUploadQuestions] Database exception:', dbError);
-        res.status(500).json({ 
-          error: `Database error: ${dbError.message}`,
-          successful: 0,
-          attempted: questions.length 
-        });
+      } catch (pdfErr: unknown) {
+        const msg = pdfErr instanceof Error ? pdfErr.message : String(pdfErr);
+        res.status(400).json({ error: `Failed to parse PDF: ${msg}` });
         return;
       }
-    } else if (errors.length > 0) {
-      res.status(400).json({
-        success: 0,
-        attempted: 0,
-        errors,
-        message: 'No valid questions found in the CSV file. Please check the format and data.'
-      });
+    }
+    // ── DOCX ────────────────────────────────────────────────────────────────
+    else if (
+      mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      originalName.endsWith('.docx')
+    ) {
+      try {
+        const result = await mammoth.extractRawText({ buffer: file.buffer });
+        parsedQuestions = parseQuestionsFromText(result.value);
+        if (parsedQuestions.length === 0) {
+          res.status(400).json({
+            error: 'No questions could be extracted from the DOCX. Please ensure questions follow the expected format: numbered questions with A/B/C/D options and an "Answer: X" line.',
+          });
+          return;
+        }
+      } catch (docxErr: unknown) {
+        const msg = docxErr instanceof Error ? docxErr.message : String(docxErr);
+        res.status(400).json({ error: `Failed to parse DOCX: ${msg}` });
+        return;
+      }
     } else {
       res.status(400).json({
-        error: 'No data rows found in the CSV file'
+        error: 'Unsupported file type. Please upload a CSV, PDF, or DOCX file.',
       });
+      return;
     }
-  } catch (error: any) {
+
+    // ── Insert to database ────────────────────────────────────────────────
+    if (parsedQuestions.length === 0) {
+      res.status(400).json({
+        error: errors.length > 0 ? 'All rows had errors, nothing to insert.' : 'No valid questions found in the file.',
+        errors,
+      });
+      return;
+    }
+
+    const dbRecords = parsedQuestions.map((q, idx) => ({
+      test_id: id,
+      ...q,
+      order_index: idx,
+      source_file: file.originalname,
+    }));
+
+    const { data, error } = await supabaseAdmin
+      .from('questions')
+      .insert(dbRecords)
+      .select('id, question_text, order_index');
+
+    if (error) {
+      res.status(400).json({ error: `Database error: ${error.message}` });
+      return;
+    }
+
+    res.json({
+      success: data?.length ?? 0,
+      attempted: parsedQuestions.length,
+      errors,
+      message: `Successfully uploaded ${data?.length ?? 0} questions${errors.length ? ` (${errors.length} rows skipped)` : ''}.`,
+    });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
     console.error('Bulk upload questions error:', error);
-    res.status(500).json({ error: `Internal server error: ${error.message}` });
+    res.status(500).json({ error: `Internal server error: ${msg}` });
   }
 };
 

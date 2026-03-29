@@ -106,16 +106,26 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
       return;
     }
 
-    // Fetch student by email
+    // Fetch student by email – check both status (new) and is_active (legacy)
     const { data: student, error } = await supabaseAdmin
       .from('students')
       .select('*')
       .eq('email', email)
-      .eq('is_active', true)
       .single();
 
     if (error || !student) {
       res.status(401).json({ success: false, error: 'Invalid credentials' });
+      return;
+    }
+
+    // Support both new 'status' column and legacy 'is_active' boolean
+    const studentStatus: string = student.status ?? (student.is_active ? 'ACTIVE' : 'INACTIVE');
+    if (studentStatus !== 'ACTIVE') {
+      const message =
+        studentStatus === 'SUSPENDED'
+          ? 'Your account has been suspended. Please contact your institution.'
+          : 'Your account is inactive. Please contact your institution.';
+      res.status(403).json({ success: false, error: message });
       return;
     }
 

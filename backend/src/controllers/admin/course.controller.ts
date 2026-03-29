@@ -64,38 +64,45 @@ export const getCourses = async (req: Request, res: Response): Promise<void> => 
 // Create a new course
 export const createCourse = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { 
-      name, 
-      description, 
-      duration_hours, 
-      price, 
-      level, 
-      category, 
-      is_published 
+    const {
+      name,
+      title,
+      description,
+      price,
+      duration_value,
+      duration_unit,
+      duration_hours,
+      start_date,
+      end_date,
+      last_enrollment_date,
+      thumbnail,
+      instructor,
+      terms_and_conditions,
+      category,
+      level,
+      status,
+      is_published,
     } = req.body;
 
-    if (!name) {
-      res.status(400).json({ error: 'Course name is required' });
+    if (!name && !title) {
+      res.status(400).json({ error: 'Course name or title is required' });
       return;
     }
 
-    // Build insert data with extended fields
-    const insertData: any = { 
-      name, 
-      description, 
-      is_active: true 
+    const insertData: Record<string, unknown> = {
+      name: name || title,
+      title: title || name,
+      is_active: true,
+      status: status || 'active',
     };
 
-    // Add extended metadata fields if provided
-    if (duration_hours !== undefined) {
-      const parsedDuration = Number(duration_hours);
-      if (isNaN(parsedDuration) || parsedDuration < 0) {
-        res.status(400).json({ error: 'Invalid duration_hours. Must be a positive number.' });
-        return;
-      }
-      insertData.duration_hours = parsedDuration;
-    }
+    if (description !== undefined) insertData.description = description;
+    if (thumbnail !== undefined) insertData.thumbnail = thumbnail;
+    if (instructor !== undefined) insertData.instructor = instructor;
+    if (terms_and_conditions !== undefined) insertData.terms_and_conditions = terms_and_conditions;
+    if (category !== undefined) insertData.category = category;
 
+    // Price validation
     if (price !== undefined) {
       const parsedPrice = Number(price);
       if (isNaN(parsedPrice) || parsedPrice < 0) {
@@ -105,26 +112,43 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
       insertData.price = parsedPrice;
     }
 
+    // Duration: support both old (duration_hours) and new (duration_value + duration_unit)
+    if (duration_value !== undefined) {
+      const parsed = Number(duration_value);
+      if (isNaN(parsed) || parsed < 0) {
+        res.status(400).json({ error: 'Invalid duration_value. Must be a positive number.' });
+        return;
+      }
+      insertData.duration_value = parsed;
+    }
+    if (duration_unit !== undefined) {
+      const validUnits = ['days', 'weeks', 'months', 'years'];
+      if (!validUnits.includes(duration_unit as string)) {
+        res.status(400).json({ error: `Invalid duration_unit. Must be one of: ${validUnits.join(', ')}` });
+        return;
+      }
+      insertData.duration_unit = duration_unit;
+    }
+    // Legacy support
+    if (duration_hours !== undefined) {
+      const parsed = Number(duration_hours);
+      if (!isNaN(parsed) && parsed >= 0) insertData.duration_hours = parsed;
+    }
+
+    if (start_date !== undefined) insertData.start_date = start_date;
+    if (end_date !== undefined) insertData.end_date = end_date;
+    if (last_enrollment_date !== undefined) insertData.last_enrollment_date = last_enrollment_date;
+
     if (level !== undefined) {
       const validLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
-      if (!validLevels.includes(level)) {
+      if (!validLevels.includes(level as string)) {
         res.status(400).json({ error: `Invalid level. Must be one of: ${validLevels.join(', ')}` });
         return;
       }
       insertData.level = level;
     }
 
-    if (category !== undefined) {
-      if (typeof category !== 'string' || category.length > 100) {
-        res.status(400).json({ error: 'Invalid category. Must be a string with max 100 characters.' });
-        return;
-      }
-      insertData.category = category.trim();
-    }
-
-    if (is_published !== undefined) {
-      insertData.is_published = Boolean(is_published);
-    }
+    if (is_published !== undefined) insertData.is_published = Boolean(is_published);
 
     const { data, error } = await supabaseAdmin
       .from('courses')
@@ -148,32 +172,41 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
 export const updateCourse = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { 
-      name, 
-      description, 
+    const {
+      name,
+      title,
+      description,
+      price,
+      duration_value,
+      duration_unit,
+      duration_hours,
+      start_date,
+      end_date,
+      last_enrollment_date,
+      thumbnail,
+      instructor,
+      terms_and_conditions,
+      category,
+      level,
+      status,
       is_active,
-      duration_hours, 
-      price, 
-      level, 
-      category, 
-      is_published 
+      is_published,
     } = req.body;
 
-    const updateData: any = { updated_at: new Date().toISOString() };
-    
-    // Basic fields
-    if (name) updateData.name = name;
+    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
+    if (name) { updateData.name = name; updateData.title = updateData.title ?? name; }
+    if (title) { updateData.title = title; updateData.name = updateData.name ?? title; }
     if (description !== undefined) updateData.description = description;
     if (typeof is_active === 'boolean') updateData.is_active = is_active;
+    if (thumbnail !== undefined) updateData.thumbnail = thumbnail;
+    if (instructor !== undefined) updateData.instructor = instructor;
+    if (terms_and_conditions !== undefined) updateData.terms_and_conditions = terms_and_conditions;
+    if (category !== undefined) updateData.category = category;
 
-    // Extended metadata fields
-    if (duration_hours !== undefined) {
-      const parsedDuration = Number(duration_hours);
-      if (isNaN(parsedDuration) || parsedDuration < 0) {
-        res.status(400).json({ error: 'Invalid duration_hours. Must be a positive number.' });
-        return;
-      }
-      updateData.duration_hours = parsedDuration;
+    if (status && ['active', 'inactive', 'draft'].includes(status as string)) {
+      updateData.status = status;
+      updateData.is_active = status === 'active';
     }
 
     if (price !== undefined) {
@@ -185,26 +218,41 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
       updateData.price = parsedPrice;
     }
 
+    if (duration_value !== undefined) {
+      const parsed = Number(duration_value);
+      if (isNaN(parsed) || parsed < 0) {
+        res.status(400).json({ error: 'Invalid duration_value. Must be a positive number.' });
+        return;
+      }
+      updateData.duration_value = parsed;
+    }
+    if (duration_unit !== undefined) {
+      const validUnits = ['days', 'weeks', 'months', 'years'];
+      if (!validUnits.includes(duration_unit as string)) {
+        res.status(400).json({ error: `Invalid duration_unit. Must be one of: ${validUnits.join(', ')}` });
+        return;
+      }
+      updateData.duration_unit = duration_unit;
+    }
+    if (duration_hours !== undefined) {
+      const parsed = Number(duration_hours);
+      if (!isNaN(parsed) && parsed >= 0) updateData.duration_hours = parsed;
+    }
+
+    if (start_date !== undefined) updateData.start_date = start_date;
+    if (end_date !== undefined) updateData.end_date = end_date;
+    if (last_enrollment_date !== undefined) updateData.last_enrollment_date = last_enrollment_date;
+
     if (level !== undefined) {
       const validLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
-      if (!validLevels.includes(level)) {
+      if (!validLevels.includes(level as string)) {
         res.status(400).json({ error: `Invalid level. Must be one of: ${validLevels.join(', ')}` });
         return;
       }
       updateData.level = level;
     }
 
-    if (category !== undefined) {
-      if (typeof category !== 'string' || category.length > 100) {
-        res.status(400).json({ error: 'Invalid category. Must be a string with max 100 characters.' });
-        return;
-      }
-      updateData.category = category.trim();
-    }
-
-    if (is_published !== undefined) {
-      updateData.is_published = Boolean(is_published);
-    }
+    if (is_published !== undefined) updateData.is_published = Boolean(is_published);
 
     const { data, error } = await supabaseAdmin
       .from('courses')

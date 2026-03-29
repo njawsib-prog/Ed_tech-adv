@@ -13,6 +13,7 @@ interface Student {
   email: string;
   course_id: string;
   branch_id: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   is_active: boolean;
   created_at: string;
   last_login: string | null;
@@ -178,11 +179,19 @@ export default function StudentsPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (student: Student) => (
-        <Badge variant={student.is_active ? 'success' : 'danger'}>
-          {student.is_active ? 'Active' : 'Inactive'}
-        </Badge>
-      ),
+      render: (student: Student) => {
+        const effectiveStatus = student.status ?? (student.is_active ? 'ACTIVE' : 'INACTIVE');
+        const variantMap: Record<string, 'success' | 'danger' | 'warning'> = {
+          ACTIVE: 'success',
+          INACTIVE: 'danger',
+          SUSPENDED: 'warning',
+        };
+        return (
+          <Badge variant={variantMap[effectiveStatus] ?? 'danger'}>
+            {effectiveStatus}
+          </Badge>
+        );
+      },
     },
     {
       key: 'last_login',
@@ -198,7 +207,7 @@ export default function StudentsPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => router.push(`/admin/students/${student.id}`)}
+            onClick={() => router.push(`/admin/students/${student.id}/edit`)}
           >
             Edit
           </Button>

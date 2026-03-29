@@ -32,7 +32,7 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
 
     let query = supabaseAdmin
       .from('students')
-      .select('id, name, email, course_id, branch_id, is_active, created_at, last_login, courses(name), branches(name)', { count: 'exact' });
+      .select('id, name, email, course_id, branch_id, status, is_active, created_at, last_login, courses(name), branches(name)', { count: 'exact' });
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -46,10 +46,12 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
       query = query.eq('branch_id', branch_id);
     }
 
-    if (status === 'active') {
-      query = query.eq('is_active', true);
-    } else if (status === 'inactive') {
-      query = query.eq('is_active', false);
+    if (status === 'active' || status === 'ACTIVE') {
+      query = query.eq('status', 'ACTIVE');
+    } else if (status === 'inactive' || status === 'INACTIVE') {
+      query = query.eq('status', 'INACTIVE');
+    } else if (status === 'suspended' || status === 'SUSPENDED') {
+      query = query.eq('status', 'SUSPENDED');
     }
 
     const { data, error, count } = await query
@@ -110,8 +112,9 @@ export const createStudent = async (req: StudentRequest, res: Response): Promise
         course_id,
         branch_id,
         is_active: true,
+        status: 'ACTIVE',
       })
-      .select('id, name, email, course_id, branch_id, is_active, created_at')
+      .select('id, name, email, course_id, branch_id, status, is_active, created_at')
       .single();
 
     if (error) {
@@ -299,21 +302,35 @@ export const bulkUploadStudents = async (req: Request, res: Response): Promise<v
 export const updateStudent = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, email, course_id, branch_id, is_active } = req.body;
+    const { name, email, course_id, branch_id, status, is_active, password } = req.body;
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (course_id) updateData.course_id = course_id;
-    if (branch_id) updateData.branch_id = branch_id;
-    if (typeof is_active === 'boolean') updateData.is_active = is_active;
+    if (branch_id !== undefined) updateData.branch_id = branch_id;
+
+    // Support new 'status' field (ACTIVE / INACTIVE / SUSPENDED)
+    if (status && ['ACTIVE', 'INACTIVE', 'SUSPENDED'].includes(status as string)) {
+      updateData.status = status;
+      updateData.is_active = status === 'ACTIVE';
+    } else if (typeof is_active === 'boolean') {
+      updateData.is_active = is_active;
+      updateData.status = is_active ? 'ACTIVE' : 'INACTIVE';
+    }
+
+    // Optional password reset
+    if (password && typeof password === 'string' && password.trim().length >= 6) {
+      updateData.password_hash = await bcrypt.hash(password.trim(), 12);
+    }
+
     updateData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabaseAdmin
       .from('students')
       .update(updateData)
       .eq('id', id)
-      .select('id, name, email, course_id, branch_id, is_active')
+      .select('id, name, email, course_id, branch_id, status, is_active')
       .single();
 
     if (error) {
@@ -328,15 +345,38 @@ export const updateStudent = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+// Get a single student by ID
+export const getStudentById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const { data, error } = await supabaseAdmin
+      .from('students')
+      .select('id, name, email, course_id, branch_id, status, is_active, created_at, last_login, roll_number, courses(id, name), branches(id, name)')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      res.status(404).json({ success: false, error: 'Student not found' });
+      return;
+    }
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Get student by ID error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
 // Delete a student (soft delete)
 export const deleteStudent = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    // Soft delete - set is_active to false
+    // Soft delete - set status to INACTIVE and is_active to false
     const { error } = await supabaseAdmin
       .from('students')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .update({ status: 'INACTIVE', is_active: false, updated_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) {
@@ -353,6 +393,7 @@ export const deleteStudent = async (req: Request, res: Response): Promise<void> 
 
 export default {
   getStudents,
+  getStudentById,
   createStudent,
   bulkUploadStudents,
   updateStudent,

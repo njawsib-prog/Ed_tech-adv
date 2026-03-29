@@ -246,6 +246,30 @@ export default function TestsPage() {
     setShowQuestionModal(true);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedTestId || !e.target.files?.length) return;
+    const file = e.target.files[0];
+    const formPayload = new FormData();
+    formPayload.append('file', file);
+    setSaving(true);
+    try {
+      const res = await apiClient.post<{ success: number; message: string }>(
+        `/admin/tests/${selectedTestId}/questions/bulk`,
+        formPayload,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      alert(res.data.message || `Uploaded ${res.data.success} questions`);
+      fetchQuestions(selectedTestId);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      alert(err.response?.data?.error || 'Failed to upload questions');
+    } finally {
+      setSaving(false);
+      // Reset file input so the same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const openAssignModal = (testId: string) => {
     setSelectedTestId(testId);
     setShowAssignModal(true);
@@ -522,6 +546,32 @@ export default function TestsPage() {
         size="lg"
       >
         <div className="space-y-4">
+          {/* File Upload Section */}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-sm font-semibold text-blue-800 mb-2">📂 Bulk Upload Questions</h4>
+            <p className="text-xs text-blue-600 mb-3">
+              Upload a <strong>CSV</strong> (columns: question_text, option_a, option_b, option_c, option_d, correct_option),{' '}
+              <strong>PDF</strong>, or <strong>DOCX</strong> file with numbered MCQs.
+            </p>
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={saving}
+              >
+                {saving ? 'Uploading…' : '⬆ Choose File (CSV / PDF / DOCX)'}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+            </div>
+          </div>
+
           <form onSubmit={handleQuestionSubmit} className="space-y-3 p-4 bg-gray-50 rounded-lg">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Question Text</label>

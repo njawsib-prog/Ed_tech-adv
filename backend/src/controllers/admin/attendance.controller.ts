@@ -31,11 +31,11 @@ export const getStudentsForAttendance = async (req: AuthRequest, res: Response):
   try {
     const { course_id, branch_id, date } = req.query;
 
-    // Build the query for active students
+    // Build the query for active students (supports both new status and legacy is_active)
     let query = supabaseAdmin
       .from('students')
       .select('id, name, email, roll_number, course_id, branch_id, courses(name), branches(name)')
-      .eq('is_active', true);
+      .or('status.eq.ACTIVE,is_active.eq.true');
 
     // Apply filters
     if (course_id) {

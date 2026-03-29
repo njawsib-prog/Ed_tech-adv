@@ -1,18 +1,10 @@
 import { Request, Response } from 'express';
 import { supabaseAdmin } from '../../db/supabaseAdmin';
-
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-    instituteId: string;
-  };
-}
+import { AuthRequest } from '../../types';
 
 // Get all results with filtering and pagination
 export const getResults = async (req: AuthRequest, res: Response) => {
   try {
-    const instituteId = req.user?.instituteId;
     const {
       page = 1,
       limit = 20,
@@ -49,7 +41,7 @@ export const getResults = async (req: AuthRequest, res: Response) => {
           roll_number
         )
       `, { count: 'exact' })
-      .eq('institute_id', instituteId);
+      ;
 
     // Apply filters
     if (testId) {
@@ -63,7 +55,9 @@ export const getResults = async (req: AuthRequest, res: Response) => {
     }
 
     // Apply sorting
-    query = query.order(sortBy as string, { ascending: sortOrder === 'asc' });
+    const allowedSortFields = ['submitted_at', 'score', 'percentage', 'started_at'];
+    const sortField = allowedSortFields.includes(sortBy as string) ? (sortBy as string) : 'submitted_at';
+    query = query.order(sortField, { ascending: sortOrder === 'asc' });
 
     // Apply pagination
     query = query.range(offset, offset + Number(limit) - 1);
@@ -93,7 +87,6 @@ export const getResults = async (req: AuthRequest, res: Response) => {
 export const getResultById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const instituteId = req.user?.instituteId;
 
     const { data, error } = await supabaseAdmin
       .from('results')
@@ -123,7 +116,7 @@ export const getResultById = async (req: AuthRequest, res: Response) => {
         )
       `)
       .eq('id', id)
-      .eq('institute_id', instituteId)
+      
       .single();
 
     if (error) {
@@ -141,14 +134,13 @@ export const getResultById = async (req: AuthRequest, res: Response) => {
 export const getTestAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     const { testId } = req.params;
-    const instituteId = req.user?.instituteId;
 
     // Get test details
     const { data: test, error: testError } = await supabaseAdmin
       .from('tests')
       .select('id, title, total_marks, passing_marks, questions')
       .eq('id', testId)
-      .eq('institute_id', instituteId)
+      
       .single();
 
     if (testError || !test) {
@@ -169,7 +161,7 @@ export const getTestAnalytics = async (req: AuthRequest, res: Response) => {
         students (id, name, email, roll_number)
       `)
       .eq('test_id', testId)
-      .eq('institute_id', instituteId);
+      ;
 
     if (resultsError) {
       return res.status(400).json({ error: resultsError.message });
@@ -338,14 +330,13 @@ export const getTestAnalytics = async (req: AuthRequest, res: Response) => {
 export const getStudentPerformance = async (req: AuthRequest, res: Response) => {
   try {
     const { studentId } = req.params;
-    const instituteId = req.user?.instituteId;
 
     // Verify student belongs to institute
     const { data: student, error: studentError } = await supabaseAdmin
       .from('students')
       .select('id, name, email, roll_number')
       .eq('id', studentId)
-      .eq('institute_id', instituteId)
+      
       .single();
 
     if (studentError || !student) {
@@ -419,7 +410,6 @@ export const getStudentPerformance = async (req: AuthRequest, res: Response) => 
 // Export results to CSV
 export const exportResultsCSV = async (req: AuthRequest, res: Response) => {
   try {
-    const instituteId = req.user?.instituteId;
     const { testId, status } = req.query;
 
     let query = supabaseAdmin
@@ -435,7 +425,7 @@ export const exportResultsCSV = async (req: AuthRequest, res: Response) => {
         tests (title),
         students (name, email, roll_number)
       `)
-      .eq('institute_id', instituteId);
+      ;
 
     if (testId) {
       query = query.eq('test_id', testId);
@@ -495,13 +485,12 @@ export const exportResultsCSV = async (req: AuthRequest, res: Response) => {
 export const deleteResult = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const instituteId = req.user?.instituteId;
 
     const { error } = await supabaseAdmin
       .from('results')
       .delete()
       .eq('id', id)
-      .eq('institute_id', instituteId);
+      ;
 
     if (error) {
       return res.status(400).json({ error: error.message });
