@@ -5,9 +5,19 @@ import { supabaseAdmin } from '../db/supabaseAdmin';
 import config from '../config/env';
 import { isStudentActive, resolveStudentStatus } from '../utils/studentStatus';
 
-// Use JWT secret from centralized config
+// Use JWT secret from centralized config - NEVER use a fallback in production
 const JWT_SECRET = config.jwtSecret;
 const JWT_EXPIRY = config.jwtExpiresIn;
+
+// Debug logging for JWT configuration
+console.log('[AuthController] JWT Configuration:', {
+  hasSecret: !!JWT_SECRET,
+  secretLength: JWT_SECRET?.length || 0,
+  secretPrefix: JWT_SECRET ? JWT_SECRET.substring(0, 10) + '...' : 'none',
+  expiry: JWT_EXPIRY,
+  isProduction: process.env.NODE_ENV === 'production',
+  safeMode: config.SAFE_MODE
+});
 
 interface LoginRequest extends Request {
   body: {
@@ -64,8 +74,8 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
     // Generate JWT
     const token = jwt.sign(
       { id: admin.id, email: admin.email, role: 'admin' as const },
-      JWT_SECRET || 'dev-secret-do-not-use-in-production',
-      { expiresIn: JWT_EXPIRY } as any
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY } as jwt.SignOptions
     );
 
     // Determine cookie options based on environment
@@ -75,6 +85,7 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
       secure: isProduction,
       sameSite: (isProduction ? 'none' : 'lax') as 'lax' | 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
     };
 
     console.log('[Auth] Admin login successful - setting cookie with options:', {
@@ -155,8 +166,8 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
     // Generate JWT
     const token = jwt.sign(
       { id: student.id, email: student.email, role: 'student' as const },
-      JWT_SECRET || 'dev-secret-do-not-use-in-production',
-      { expiresIn: JWT_EXPIRY } as any
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY } as jwt.SignOptions
     );
 
     // Determine cookie options based on environment
@@ -166,6 +177,7 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
       secure: isProduction,
       sameSite: (isProduction ? 'none' : 'lax') as 'lax' | 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
     };
 
     console.log('[Auth] Student login successful - setting cookie with options:', {
@@ -205,6 +217,7 @@ export const logout = (req: Request, res: Response): void => {
     httpOnly: true,
     secure: isProduction,
     sameSite: (isProduction ? 'none' : 'lax') as 'lax' | 'none',
+    path: '/',
   };
 
   console.log('[Auth] Logout - clearing cookie with options:', {

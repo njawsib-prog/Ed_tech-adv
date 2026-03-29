@@ -8,6 +8,15 @@ import { isStudentActive, resolveStudentStatus } from '../utils/studentStatus';
 // Use JWT secret from centralized config
 const JWT_SECRET = config.jwtSecret;
 
+// Debug logging for JWT configuration in middleware
+console.log('[AuthMiddleware] JWT Configuration:', {
+  hasSecret: !!JWT_SECRET,
+  secretLength: JWT_SECRET?.length || 0,
+  secretPrefix: JWT_SECRET ? JWT_SECRET.substring(0, 10) + '...' : 'none',
+  isProduction: process.env.NODE_ENV === 'production',
+  safeMode: config.SAFE_MODE
+});
+
 export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Get token from cookie
@@ -18,7 +27,10 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       method: req.method,
       hasCookieToken: !!token,
       cookieTokenPrefix: token ? token.substring(0, 20) + '...' : 'none',
-      allCookies: Object.keys(req.cookies || {})
+      allCookies: Object.keys(req.cookies || {}),
+      origin: req.headers.origin,
+      referer: req.headers.referer,
+      host: req.headers.host,
     });
 
     if (!token) {
@@ -67,9 +79,18 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     req.user = decoded;
 
     next();
-  } catch (error) {
+  } catch (error: any) {
     console.error('[AuthMiddleware] Token verification failed:', error);
-    res.status(401).json({ error: 'Invalid or expired token' });
+    console.error('[AuthMiddleware] Error name:', error?.name);
+    console.error('[AuthMiddleware] Error message:', error?.message);
+    
+    if (error.name === 'JsonWebTokenError') {
+      res.status(401).json({ error: 'Invalid token' });
+    } else if (error.name === 'TokenExpiredError') {
+      res.status(401).json({ error: 'Token expired' });
+    } else {
+      res.status(401).json({ error: 'Invalid or expired token' });
+    }
   }
 };
 
