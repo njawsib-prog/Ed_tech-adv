@@ -14,6 +14,7 @@ interface TestDetails {
   question_count: number;
   course_name: string;
   has_submitted: boolean;
+  result_id: string | null;
   assignment_status: string;
   is_active: boolean;
 }
@@ -98,7 +99,7 @@ export default function TestDetailPage() {
               <div className="p-4 bg-green-50 rounded-base mb-4">
                 <p className="text-green-700 font-medium">You have already completed this test</p>
               </div>
-              <Button onClick={() => router.push(`/tests/${test.id}/result`)}>
+              <Button onClick={() => router.push(`/results/${test.result_id}`)}>
                 View Result
               </Button>
             </div>

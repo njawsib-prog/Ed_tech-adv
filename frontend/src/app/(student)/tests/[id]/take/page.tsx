@@ -39,8 +39,8 @@ export default function TakeTestPage() {
         const responseData = (response.data as any)?.success ? (response.data as any).data : response.data;
         setQuestions(responseData.questions);
         setTestId(responseData.test_id);
-        // Set timer (assuming 60 mins default)
-        setTimeLeft(60 * 60); // in seconds
+        // Use the actual time limit returned by the backend
+        setTimeLeft((responseData.time_limit_mins || 60) * 60);
       } catch (error: any) {
         toast.error(error.response?.data?.error || 'Failed to start test');
         router.push('/tests');
@@ -118,7 +118,7 @@ export default function TakeTestPage() {
       });
 
       const responseData = (response.data as any)?.success ? (response.data as any).data : response.data;
-      router.push(`/tests/${testId}/result?resultId=${responseData.result.id}`);
+      router.push(`/results/${responseData.result.id}`);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to submit test');
     } finally {
