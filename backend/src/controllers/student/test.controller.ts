@@ -263,9 +263,10 @@ export const submitTest = async (req: StudentRequest, res: Response): Promise<vo
   try {
     const { id } = req.params;
     const studentId = req.user?.id;
+    const instituteId = req.user?.instituteId;
     const { answers, time_taken_secs } = req.body;
 
-    if (!studentId) {
+    if (!studentId || !instituteId) {
       res.status(401).json({ success: false, error: 'Unauthorized' });
       return;
     }
@@ -303,6 +304,7 @@ export const submitTest = async (req: StudentRequest, res: Response): Promise<vo
     const { data: result, error } = await supabaseAdmin
       .from('results')
       .insert({
+        institute_id: instituteId,
         student_id: studentId,
         test_id: id,
         score,
