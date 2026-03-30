@@ -30,12 +30,14 @@ export default function AdminRootLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
 
   const isLoginPage = pathname === '/admin/login';
-  const adminRoles = ['admin', 'super_admin', 'branch_admin'];
+  const adminRoles = ['admin', 'branch_admin'];
 
   useEffect(() => {
     if (!isLoginPage && !isLoading) {
       if (!user) {
         router.push('/admin/login');
+      } else if (user.role === 'super_admin') {
+        router.push('/super-admin');
       } else if (!adminRoles.includes(user.role)) {
         router.push('/');
       }
