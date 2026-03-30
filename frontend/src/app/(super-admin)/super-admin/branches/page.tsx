@@ -236,8 +236,7 @@ export default function BranchesPage() {
       <DataTable columns={columns} data={filteredBranches} />
 
       {/* Modal */}
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)} title={selectedBranch ? 'Edit Branch' : 'Add Branch'}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedBranch ? 'Edit Branch' : 'Add Branch'}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Branch Name</label>
@@ -283,8 +282,7 @@ export default function BranchesPage() {
               </button>
             </div>
           </form>
-        </Modal>
-      )}
+      </Modal>
     </div>
   );
 }
