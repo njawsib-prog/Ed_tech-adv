@@ -71,9 +71,18 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
       .update({ last_login: new Date().toISOString() })
       .eq('id', admin.id);
 
-    // Generate JWT
+    // Validate that the role stored in the database is one of the expected admin roles
+    const validAdminRoles = ['admin', 'super_admin', 'branch_admin'] as const;
+    type AdminRole = typeof validAdminRoles[number];
+    if (!validAdminRoles.includes(admin.role as AdminRole)) {
+      res.status(403).json({ success: false, error: 'Invalid account role' });
+      return;
+    }
+
+    // Generate JWT – use the role stored in DB so super_admin and branch_admin
+    // receive a token that reflects their actual role.
     const token = jwt.sign(
-      { id: admin.id, email: admin.email, role: 'admin' as const },
+      { id: admin.id, email: admin.email, role: admin.role as AdminRole },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY } as jwt.SignOptions
     );
@@ -249,7 +258,7 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
     }
 
     let userData;
-    if (user.role === 'admin') {
+    if (user.role === 'admin' || user.role === 'super_admin' || user.role === 'branch_admin') {
       const { data, error } = await supabaseAdmin
         .from('admins')
         .select('id, name, email, role, avatar_url')
