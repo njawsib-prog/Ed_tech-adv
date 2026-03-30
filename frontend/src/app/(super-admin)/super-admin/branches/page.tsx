@@ -35,7 +35,7 @@ export default function BranchesPage() {
 
   const fetchBranches = async () => {
     try {
-      const res = await apiClient.get('/api/super-admin/branches');
+      const res = await apiClient.get('/super-admin/branches');
       if (res.data.success) {
         setBranches(res.data.data);
       }
@@ -48,7 +48,7 @@ export default function BranchesPage() {
 
   const handleToggleStatus = async (id: string) => {
     try {
-      const res = await apiClient.put(`/api/super-admin/branches/${id}/toggle-status`);
+      const res = await apiClient.put(`/super-admin/branches/${id}/toggle-status`);
       if (res.data.success) {
         setBranches(branches.map(b =>
           b.id === id ? { ...b, is_active: res.data.data.is_active } : b
@@ -63,7 +63,7 @@ export default function BranchesPage() {
     if (!confirm('Are you sure you want to delete this branch?')) return;
 
     try {
-      const res = await apiClient.delete(`/api/super-admin/branches/${id}`);
+      const res = await apiClient.delete(`/super-admin/branches/${id}`);
       if (res.data.success) {
         setBranches(branches.filter(b => b.id !== id));
       }
@@ -77,8 +77,8 @@ export default function BranchesPage() {
 
     try {
       const endpoint = selectedBranch
-        ? `/api/super-admin/branches/${selectedBranch.id}`
-        : '/api/super-admin/branches';
+        ? `/super-admin/branches/${selectedBranch.id}`
+        : '/super-admin/branches';
       const method = selectedBranch ? 'put' : 'post';
 
       const res = await apiClient[method](endpoint, formData);

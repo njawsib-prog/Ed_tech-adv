@@ -50,8 +50,8 @@ export default function NotificationsPage() {
   const fetchAll = async () => {
     try {
       const [notifRes, branchRes] = await Promise.all([
-        apiClient.get('/api/super-admin/notifications'),
-        apiClient.get('/api/super-admin/branches'),
+        apiClient.get('/super-admin/notifications'),
+        apiClient.get('/super-admin/branches'),
       ]);
       if (notifRes.data.success) setNotifications(notifRes.data.data);
       if (branchRes.data.success) setBranches(branchRes.data.data);
@@ -69,7 +69,7 @@ export default function NotificationsPage() {
       const payload: Record<string, any> = { ...formData };
       if (!payload.scheduled_at) delete payload.scheduled_at;
       if (payload.target_type !== 'branches' || !payload.branch_id) delete payload.branch_id;
-      const res = await apiClient.post('/api/super-admin/notifications', payload);
+      const res = await apiClient.post('/super-admin/notifications', payload);
       if (res.data.success) {
         setIsModalOpen(false);
         setFormData(defaultForm);
@@ -83,7 +83,7 @@ export default function NotificationsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this notification?')) return;
     try {
-      const res = await apiClient.delete(`/api/super-admin/notifications/${id}`);
+      const res = await apiClient.delete(`/super-admin/notifications/${id}`);
       if (res.data.success) setNotifications(notifications.filter(n => n.id !== id));
     } catch (err) {
       alert('Failed to delete notification');

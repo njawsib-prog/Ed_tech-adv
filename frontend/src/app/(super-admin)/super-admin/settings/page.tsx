@@ -49,8 +49,8 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       const [settingsRes, featuresRes] = await Promise.all([
-        apiClient.get('/api/super-admin/settings'),
-        apiClient.get('/api/super-admin/settings/features'),
+        apiClient.get('/super-admin/settings'),
+        apiClient.get('/super-admin/settings/features'),
       ]);
       if (settingsRes.data.success) setSettings(settingsRes.data.data || {});
       if (featuresRes.data.success) setFeatures(featuresRes.data.data || {});
@@ -66,7 +66,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const payload = { ...settings, ...features };
-      const res = await apiClient.put('/api/super-admin/settings', payload);
+      const res = await apiClient.put('/super-admin/settings', payload);
       if (res.data.success) {
         showToast('success', 'Settings saved successfully');
       }
@@ -80,7 +80,7 @@ export default function SettingsPage() {
   const handleReset = async () => {
     if (!confirm('Reset all settings to defaults?')) return;
     try {
-      const res = await apiClient.post('/api/super-admin/settings/reset');
+      const res = await apiClient.post('/super-admin/settings/reset');
       if (res.data.success) {
         showToast('success', 'Settings reset to defaults');
         fetchSettings();

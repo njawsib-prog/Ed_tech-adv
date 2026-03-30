@@ -29,11 +29,11 @@ export default function SuperAdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       const [statsRes, growthRes, revenueRes, attendanceRes, branchesRes] = await Promise.all([
-        apiClient.get('/api/super-admin/dashboard/stats'),
-        apiClient.get('/api/super-admin/dashboard/student-growth'),
-        apiClient.get('/api/super-admin/dashboard/revenue'),
-        apiClient.get('/api/super-admin/dashboard/attendance'),
-        apiClient.get('/api/super-admin/dashboard/top-branches'),
+        apiClient.get('/super-admin/dashboard/stats'),
+        apiClient.get('/super-admin/dashboard/student-growth'),
+        apiClient.get('/super-admin/dashboard/revenue'),
+        apiClient.get('/super-admin/dashboard/attendance'),
+        apiClient.get('/super-admin/dashboard/top-branches'),
       ]);
 
       if (statsRes.data.success) setStats(statsRes.data.data);

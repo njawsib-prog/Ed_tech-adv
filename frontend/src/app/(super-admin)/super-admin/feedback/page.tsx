@@ -64,8 +64,8 @@ export default function FeedbackPage() {
   const fetchAnalyticsAndBranches = async () => {
     try {
       const [analyticsRes, branchRes] = await Promise.all([
-        apiClient.get('/api/super-admin/feedback/analytics'),
-        apiClient.get('/api/super-admin/branches'),
+        apiClient.get('/super-admin/feedback/analytics'),
+        apiClient.get('/super-admin/branches'),
       ]);
       if (analyticsRes.data.success) setAnalytics(analyticsRes.data.data);
       if (branchRes.data.success) setBranches(branchRes.data.data);
@@ -82,7 +82,7 @@ export default function FeedbackPage() {
       if (typeFilter) params.type = typeFilter;
       if (ratingFilter) params.rating = ratingFilter;
       if (search) params.search = search;
-      const res = await apiClient.get('/api/super-admin/feedback', { params });
+      const res = await apiClient.get('/super-admin/feedback', { params });
       if (res.data.success) setFeedback(res.data.data);
     } catch (err) {
       setError('Failed to load feedback');

@@ -59,7 +59,7 @@ export default function StudentsPage() {
 
   const fetchBranches = async () => {
     try {
-      const res = await apiClient.get('/api/super-admin/branches');
+      const res = await apiClient.get('/super-admin/branches');
       if (res.data.success) setBranches(res.data.data);
     } catch (err) {
       console.error('Error fetching branches:', err);
@@ -73,7 +73,7 @@ export default function StudentsPage() {
       if (branchFilter) params.branch_id = branchFilter;
       if (statusFilter) params.status = statusFilter;
       if (search) params.search = search;
-      const res = await apiClient.get('/api/super-admin/students', { params });
+      const res = await apiClient.get('/super-admin/students', { params });
       if (res.data.success) setStudents(res.data.data);
     } catch (err) {
       setError('Failed to load students');
@@ -86,7 +86,7 @@ export default function StudentsPage() {
     e.preventDefault();
     setFormError('');
     try {
-      const res = await apiClient.post('/api/super-admin/students', formData);
+      const res = await apiClient.post('/super-admin/students', formData);
       if (res.data.success) {
         setIsAddModal(false);
         setFormData({ name: '', email: '', password: '', phone: '', branch_id: '', roll_number: '' });
@@ -100,7 +100,7 @@ export default function StudentsPage() {
   const handleUpdateStatus = async () => {
     if (!selectedStudent) return;
     try {
-      const res = await apiClient.put(`/api/super-admin/students/${selectedStudent.id}/status`, { status: newStatus });
+      const res = await apiClient.put(`/super-admin/students/${selectedStudent.id}/status`, { status: newStatus });
       if (res.data.success) {
         setStudents(students.map(s => s.id === selectedStudent.id ? { ...s, status: newStatus } : s));
         setIsStatusModal(false);
@@ -114,7 +114,7 @@ export default function StudentsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this student?')) return;
     try {
-      const res = await apiClient.delete(`/api/super-admin/students/${id}`);
+      const res = await apiClient.delete(`/super-admin/students/${id}`);
       if (res.data.success) {
         setStudents(students.filter(s => s.id !== id));
       }

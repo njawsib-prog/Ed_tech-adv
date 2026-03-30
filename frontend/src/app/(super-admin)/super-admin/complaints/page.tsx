@@ -46,7 +46,7 @@ export default function ComplaintsPage() {
 
   const fetchStats = async () => {
     try {
-      const res = await apiClient.get('/api/super-admin/complaints/stats');
+      const res = await apiClient.get('/super-admin/complaints/stats');
       if (res.data.success) setStats(res.data.data);
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -60,7 +60,7 @@ export default function ComplaintsPage() {
       if (statusFilter) params.status = statusFilter;
       if (priorityFilter) params.priority = priorityFilter;
       if (search) params.search = search;
-      const res = await apiClient.get('/api/super-admin/complaints', { params });
+      const res = await apiClient.get('/super-admin/complaints', { params });
       if (res.data.success) setComplaints(res.data.data);
     } catch (err) {
       setError('Failed to load complaints');
@@ -72,7 +72,7 @@ export default function ComplaintsPage() {
   const handleResolve = async () => {
     if (!selectedComplaint) return;
     try {
-      const res = await apiClient.put(`/api/super-admin/complaints/${selectedComplaint.id}/resolve`, {
+      const res = await apiClient.put(`/super-admin/complaints/${selectedComplaint.id}/resolve`, {
         resolution_notes: resolutionNotes,
       });
       if (res.data.success) {
@@ -90,7 +90,7 @@ export default function ComplaintsPage() {
   const handleOverride = async (id: string) => {
     if (!confirm('Override this complaint?')) return;
     try {
-      const res = await apiClient.put(`/api/super-admin/complaints/${id}/override`);
+      const res = await apiClient.put(`/super-admin/complaints/${id}/override`);
       if (res.data.success) {
         setComplaints(complaints.map(c => c.id === id ? { ...c, status: res.data.data?.status || 'overridden' } : c));
       }

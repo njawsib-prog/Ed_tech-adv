@@ -61,9 +61,9 @@ export default function PaymentsPage() {
   const fetchAll = async () => {
     try {
       const [analyticsRes, branchesRes, defaultersRes] = await Promise.all([
-        apiClient.get('/api/super-admin/payments/analytics'),
-        apiClient.get('/api/super-admin/branches'),
-        apiClient.get('/api/super-admin/payments/defaulters'),
+        apiClient.get('/super-admin/payments/analytics'),
+        apiClient.get('/super-admin/branches'),
+        apiClient.get('/super-admin/payments/defaulters'),
       ]);
       if (analyticsRes.data.success) setAnalytics(analyticsRes.data.data);
       if (branchesRes.data.success) setBranches(branchesRes.data.data);
@@ -81,7 +81,7 @@ export default function PaymentsPage() {
       if (statusFilter) params.status = statusFilter;
       if (branchFilter) params.branch_id = branchFilter;
       if (search) params.search = search;
-      const res = await apiClient.get('/api/super-admin/payments', { params });
+      const res = await apiClient.get('/super-admin/payments', { params });
       if (res.data.success) setPayments(res.data.data);
     } catch (err) {
       console.error('Error fetching payments:', err);
@@ -90,7 +90,7 @@ export default function PaymentsPage() {
 
   const handleVerify = async (id: string) => {
     try {
-      const res = await apiClient.put(`/api/super-admin/payments/${id}/verify`);
+      const res = await apiClient.put(`/super-admin/payments/${id}/verify`);
       if (res.data.success) {
         setPayments(payments.map(p => p.id === id ? { ...p, status: 'completed' } : p));
       }
@@ -101,7 +101,7 @@ export default function PaymentsPage() {
 
   const handleReceipt = async (id: string) => {
     try {
-      const res = await apiClient.post(`/api/super-admin/payments/${id}/receipt`);
+      const res = await apiClient.post(`/super-admin/payments/${id}/receipt`);
       if (res.data.success) {
         setReceiptData(res.data.data);
         setReceiptModal(true);

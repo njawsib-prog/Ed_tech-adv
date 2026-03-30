@@ -61,7 +61,7 @@ export default function CoursesPage() {
 
   const fetchBranches = async () => {
     try {
-      const res = await apiClient.get('/api/super-admin/branches');
+      const res = await apiClient.get('/super-admin/branches');
       if (res.data.success) setBranches(res.data.data);
     } catch (err) {
       console.error('Error fetching branches:', err);
@@ -76,7 +76,7 @@ export default function CoursesPage() {
       if (statusFilter) params.status = statusFilter;
       if (levelFilter) params.level = levelFilter;
       if (search) params.search = search;
-      const res = await apiClient.get('/api/super-admin/courses', { params });
+      const res = await apiClient.get('/super-admin/courses', { params });
       if (res.data.success) setCourses(res.data.data);
     } catch (err) {
       setError('Failed to load courses');
@@ -95,8 +95,8 @@ export default function CoursesPage() {
         duration_weeks: Number(formData.duration_weeks),
       };
       const res = selectedCourse
-        ? await apiClient.put(`/api/super-admin/courses/${selectedCourse.id}`, payload)
-        : await apiClient.post('/api/super-admin/courses', payload);
+        ? await apiClient.put(`/super-admin/courses/${selectedCourse.id}`, payload)
+        : await apiClient.post('/super-admin/courses', payload);
       if (res.data.success) {
         setIsModalOpen(false);
         setSelectedCourse(null);
@@ -111,7 +111,7 @@ export default function CoursesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this course?')) return;
     try {
-      const res = await apiClient.delete(`/api/super-admin/courses/${id}`);
+      const res = await apiClient.delete(`/super-admin/courses/${id}`);
       if (res.data.success) setCourses(courses.filter(c => c.id !== id));
     } catch (err) {
       alert('Failed to delete course');
@@ -120,7 +120,7 @@ export default function CoursesPage() {
 
   const handleToggleStatus = async (id: string) => {
     try {
-      const res = await apiClient.put(`/api/super-admin/courses/${id}/toggle-status`);
+      const res = await apiClient.put(`/super-admin/courses/${id}/toggle-status`);
       if (res.data.success) {
         setCourses(courses.map(c => c.id === id ? { ...c, is_active: res.data.data.is_active } : c));
       }

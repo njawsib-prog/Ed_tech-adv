@@ -60,9 +60,9 @@ export default function BranchDetailPage() {
     setLoading(true);
     try {
       const [detailsRes, studentsRes, paymentsRes] = await Promise.all([
-        apiClient.get(`/api/super-admin/branches/${branchId}/details`),
-        apiClient.get(`/api/super-admin/students?branch_id=${branchId}&limit=50`),
-        apiClient.get(`/api/super-admin/payments/branch/${branchId}`),
+        apiClient.get(`/super-admin/branches/${branchId}/details`),
+        apiClient.get(`/super-admin/students?branch_id=${branchId}&limit=50`),
+        apiClient.get(`/super-admin/payments/branch/${branchId}`),
       ]);
 
       if (detailsRes.data.success) setBranch(detailsRes.data.data);

@@ -50,7 +50,7 @@ export default function AuditLogsPage() {
 
   const fetchStats = async () => {
     try {
-      const res = await apiClient.get('/api/super-admin/audit-logs/stats');
+      const res = await apiClient.get('/super-admin/audit-logs/stats');
       if (res.data.success) setStats(res.data.data);
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -66,7 +66,7 @@ export default function AuditLogsPage() {
       if (search) params.search = search;
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
-      const res = await apiClient.get('/api/super-admin/audit-logs', { params });
+      const res = await apiClient.get('/super-admin/audit-logs', { params });
       if (res.data.success) {
         setLogs(res.data.data);
         if (res.data.pagination) setPagination(prev => ({ ...prev, ...res.data.pagination }));
@@ -80,7 +80,7 @@ export default function AuditLogsPage() {
 
   const handleExport = async () => {
     try {
-      const res = await apiClient.get('/api/super-admin/audit-logs/export', { responseType: 'blob' });
+      const res = await apiClient.get('/super-admin/audit-logs/export', { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
