@@ -1,4 +1,6 @@
 import config, { SAFE_MODE } from '../config/env';
+import { MockQueue } from './mockQueue';
+import Queue from 'bull';
 
 // Queue names
 export const QUEUE_NAMES = {
@@ -58,8 +60,6 @@ let emailQueue: any;
 
 if (SAFE_MODE) {
   // Use mock queues when in SAFE MODE
-  const { MockQueue } = require('./mockQueue');
-
   console.log('[Queue] Using mock queues (SAFE MODE)');
   
   testPublishQueue = new MockQueue(QUEUE_NAMES.TEST_PUBLISH, {
@@ -103,8 +103,6 @@ if (SAFE_MODE) {
   });
 } else {
   // Use real Bull queues
-  const Queue = require('bull');
-  
   testPublishQueue = new Queue(QUEUE_NAMES.TEST_PUBLISH, {
     redis: redisOptions,
     defaultJobOptions: {

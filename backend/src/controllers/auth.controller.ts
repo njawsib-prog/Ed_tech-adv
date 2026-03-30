@@ -39,21 +39,43 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
     // Fetch admin by email – do NOT filter on is_active here so that
     // admins whose is_active column is NULL (e.g. created before the
     // column was added) are not silently rejected with "Invalid credentials".
+    console.log(`[Auth] Admin login attempt: ${email}`);
     const { data: admin, error } = await supabaseAdmin
       .from('admins')
       .select('*')
       .eq('email', email)
       .single();
 
-    if (error || !admin) {
-      res.status(401).json({ success: false, error: 'Invalid credentials' });
+    if (error && error.code !== 'PGRST116') {
+      console.error('[Auth] Admin login - Database error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Database error occurred', 
+        code: 'DB_ERROR',
+        details: config.SAFE_MODE ? error.message : undefined 
+      });
+      return;
+    }
+
+    if (!admin || (error && error.code === 'PGRST116')) {
+      console.log(`[Auth] Admin login - User not found: ${email}`);
+      res.status(401).json({ 
+        success: false, 
+        error: 'Invalid credentials', 
+        code: 'USER_NOT_FOUND' 
+      });
       return;
     }
 
     // Check that the admin account is active.  Treat NULL is_active as active
     // for backward-compatibility with rows that pre-date the column.
     if (admin.is_active === false || admin.status === 'INACTIVE' || admin.status === 'SUSPENDED') {
-      res.status(403).json({ success: false, error: 'Your account is inactive. Please contact support.' });
+      console.log(`[Auth] Admin login - Account inactive/suspended: ${email}, status: ${admin.status}, is_active: ${admin.is_active}`);
+      res.status(403).json({ 
+        success: false, 
+        error: 'Your account is inactive or suspended. Please contact support.',
+        code: 'ACCOUNT_INACTIVE'
+      });
       return;
     }
 
@@ -61,7 +83,12 @@ export const adminLogin = async (req: LoginRequest, res: Response): Promise<void
     const isValidPassword = await bcrypt.compare(password, admin.password_hash);
 
     if (!isValidPassword) {
-      res.status(401).json({ success: false, error: 'Invalid credentials' });
+      console.log(`[Auth] Admin login - Invalid password for: ${email}`);
+      res.status(401).json({ 
+        success: false, 
+        error: 'Invalid credentials', 
+        code: 'INVALID_PASSWORD' 
+      });
       return;
     }
 
@@ -136,25 +163,47 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
     }
 
     // Fetch student by email – check both status (new) and is_active (legacy)
+    console.log(`[Auth] Student login attempt: ${email}`);
     const { data: student, error } = await supabaseAdmin
       .from('students')
       .select('*')
       .eq('email', email)
       .single();
 
-    if (error || !student) {
-      res.status(401).json({ success: false, error: 'Invalid credentials' });
+    if (error && error.code !== 'PGRST116') {
+      console.error('[Auth] Student login - Database error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Database error occurred', 
+        code: 'DB_ERROR',
+        details: config.SAFE_MODE ? error.message : undefined 
+      });
+      return;
+    }
+
+    if (!student || (error && error.code === 'PGRST116')) {
+      console.log(`[Auth] Student login - User not found: ${email}`);
+      res.status(401).json({ 
+        success: false, 
+        error: 'Invalid credentials', 
+        code: 'USER_NOT_FOUND' 
+      });
       return;
     }
 
     // Support both new 'status' column and legacy 'is_active' boolean
     if (!isStudentActive(student)) {
       const effectiveStatus = resolveStudentStatus(student);
+      console.log(`[Auth] Student login - Account inactive/suspended: ${email}, effectiveStatus: ${effectiveStatus}`);
       const message =
         effectiveStatus === 'SUSPENDED'
           ? 'Your account has been suspended. Please contact your institution.'
           : 'Your account is inactive. Please contact your institution.';
-      res.status(403).json({ success: false, error: message });
+      res.status(403).json({ 
+        success: false, 
+        error: message, 
+        code: 'ACCOUNT_INACTIVE' 
+      });
       return;
     }
 
@@ -162,7 +211,12 @@ export const studentLogin = async (req: LoginRequest, res: Response): Promise<vo
     const isValidPassword = await bcrypt.compare(password, student.password_hash);
 
     if (!isValidPassword) {
-      res.status(401).json({ success: false, error: 'Invalid credentials' });
+      console.log(`[Auth] Student login - Invalid password for: ${email}`);
+      res.status(401).json({ 
+        success: false, 
+        error: 'Invalid credentials', 
+        code: 'INVALID_PASSWORD' 
+      });
       return;
     }
 
