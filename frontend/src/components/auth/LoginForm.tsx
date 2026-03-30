@@ -43,10 +43,11 @@ export default function LoginForm({ role, onSuccess }: LoginFormProps) {
         hasLoginFunction: typeof login === 'function'
       });
       
+      let loggedInUser: { id: string; name: string; email: string; role: string } | null = null;
       // CRITICAL: Add try-catch to see exactly where it fails
       try {
         console.log('[LoginForm] STEP 3b: Entering login() call...');
-        await login(email, password, role);
+        loggedInUser = await login(email, password, role);
         console.log('[LoginForm] STEP 4: login() returned successfully');
       } catch (loginErr: any) {
         console.error('[LoginForm] STEP 4b: login() threw error:', loginErr);
@@ -64,8 +65,14 @@ export default function LoginForm({ role, onSuccess }: LoginFormProps) {
         console.log('[LoginForm] STEP 5b: Calling onSuccess callback');
         onSuccess();
       } else {
-        console.log('[LoginForm] STEP 5c: Pushing router to:', role === 'admin' ? '/admin' : '/dashboard');
-        router.push(role === 'admin' ? '/admin' : '/dashboard');
+        let destination = '/dashboard';
+        if (loggedInUser?.role === 'super_admin') {
+          destination = '/super-admin';
+        } else if (loggedInUser?.role === 'admin' || loggedInUser?.role === 'branch_admin') {
+          destination = '/admin';
+        }
+        console.log('[LoginForm] STEP 5c: Pushing router to:', destination);
+        router.push(destination);
       }
     } catch (err: any) {
       console.error('[LoginForm] STEP 6: Caught error in outer catch block:', err);

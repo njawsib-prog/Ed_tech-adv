@@ -39,7 +39,11 @@ export default function StudentRootLayout({ children }: { children: React.ReactN
       if (!user) {
         router.push('/');
       } else if (!studentRoles.includes(user.role)) {
-        router.push('/admin');
+        if (user.role === 'super_admin') {
+          router.push('/super-admin');
+        } else {
+          router.push('/admin');
+        }
       }
     }
   }, [user, isLoading, router]);
