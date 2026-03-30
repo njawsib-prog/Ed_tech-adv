@@ -32,10 +32,9 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response): Prom
       // 1. Profile info
       (() => {
         let q = supabaseAdmin
-          .from('students')
+          .from('users')
           .select('id, name, email, roll_number, phone, avatar_url, created_at, last_login, is_active, current_streak')
           .eq('id', studentId);
-        if (instituteId) q = q.eq('institute_id', instituteId);
         return q.single();
       })(),
 
@@ -45,7 +44,6 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response): Prom
           .from('results')
           .select('score, total_marks, percentage, status, time_taken_seconds')
           .eq('student_id', studentId);
-        if (instituteId) q = q.eq('institute_id', instituteId);
         return q;
       })(),
 
@@ -57,34 +55,31 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response): Prom
           .eq('student_id', studentId)
           .order('submitted_at', { ascending: false })
           .limit(5);
-        if (instituteId) q = q.eq('institute_id', instituteId);
         return q;
       })(),
 
       // 4. Today's assigned tests
       (() => {
         let q = supabaseAdmin
-          .from('test_assignments')
+          .from('results')
           .select('id, tests!inner(id, title, time_limit_mins, scheduled_at, courses(name))')
           .eq('student_id', studentId)
-          .eq('status', 'pending')
+          .eq('assignment_status', 'pending')
           .gte('tests.scheduled_at', today.toISOString())
           .lt('tests.scheduled_at', tomorrow.toISOString());
-        if (instituteId) q = q.eq('tests.institute_id', instituteId);
         return q;
       })(),
 
       // 5. Upcoming tests (next 7 days)
       (() => {
         let q = supabaseAdmin
-          .from('test_assignments')
+          .from('results')
           .select('id, tests!inner(id, title, time_limit_mins, scheduled_at, courses(name))')
           .eq('student_id', studentId)
-          .eq('status', 'pending')
+          .eq('assignment_status', 'pending')
           .gte('tests.scheduled_at', tomorrow.toISOString())
           .lte('tests.scheduled_at', weekFromNow.toISOString())
           .limit(5);
-        if (instituteId) q = q.eq('tests.institute_id', instituteId);
         return q;
       })(),
 
@@ -93,7 +88,6 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response): Prom
         let q = supabaseAdmin
           .from('results')
           .select('student_id, score');
-        if (instituteId) q = q.eq('institute_id', instituteId);
         return q;
       })(),
     ]);

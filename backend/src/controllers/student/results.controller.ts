@@ -5,7 +5,6 @@ interface AuthRequest extends Request {
   user?: {
     id: string;
     role: string;
-    instituteId: string;
   };
 }
 
@@ -13,7 +12,6 @@ interface AuthRequest extends Request {
 export const getMyResults = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
     const { data, error } = await supabaseAdmin
       .from('results')
@@ -31,14 +29,11 @@ export const getMyResults = async (req: AuthRequest, res: Response) => {
           total_marks,
           passing_marks,
           time_limit_mins,
-          subjects (
-            id,
-            name
-          )
+          subject
         )
       `)
       .eq('student_id', studentId)
-      .eq('institute_id', instituteId)
+      .eq('assignment_status', 'completed')
       .order('submitted_at', { ascending: false });
 
     if (error) {
@@ -57,7 +52,6 @@ export const getResultDetails = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
     const { data, error } = await supabaseAdmin
       .from('results')
@@ -76,22 +70,11 @@ export const getResultDetails = async (req: AuthRequest, res: Response) => {
           title,
           total_marks,
           passing_marks,
-          time_limit_mins,
-          questions (
-            id,
-            question_text,
-            option_a,
-            option_b,
-            option_c,
-            option_d,
-            correct_option,
-            order_index
-          )
+          time_limit_mins
         )
       `)
       .eq('id', id)
       .eq('student_id', studentId)
-      .eq('institute_id', instituteId)
       .single();
 
     if (error) {
@@ -109,9 +92,8 @@ export const getResultDetails = async (req: AuthRequest, res: Response) => {
 export const getMyPerformance = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
-    // Get all results
+    // Get all completed results
     const { data: results, error } = await supabaseAdmin
       .from('results')
       .select(`
@@ -120,13 +102,11 @@ export const getMyPerformance = async (req: AuthRequest, res: Response) => {
         percentage,
         status,
         tests (
-          subjects (
-            name
-          )
+          subject
         )
       `)
       .eq('student_id', studentId)
-      .eq('institute_id', instituteId);
+      .eq('assignment_status', 'completed');
 
     if (error) {
       return res.status(400).json({ success: false, error: error.message });
@@ -137,13 +117,11 @@ export const getMyPerformance = async (req: AuthRequest, res: Response) => {
     const averagePercentage = totalTests > 0
       ? results!.reduce((sum, r) => sum + (r.percentage || 0), 0) / totalTests
       : 0;
-    const totalMarksObtained = results?.reduce((sum, r) => sum + (r.score || 0), 0) || 0;
-    const totalMarksPossible = results?.reduce((sum, r) => sum + (r.total_marks || 0), 0) || 0;
 
     // Subject-wise performance
     const subjectPerformance: Record<string, { total: number; passed: number; avgPercentage: number }> = {};
     results?.forEach(r => {
-      const subjectName = (r.tests as any)?.subjects?.name || 'Unknown';
+      const subjectName = r.tests?.subject || 'Unknown';
       if (!subjectPerformance[subjectName]) {
         subjectPerformance[subjectName] = { total: 0, passed: 0, avgPercentage: 0 };
       }
@@ -156,12 +134,6 @@ export const getMyPerformance = async (req: AuthRequest, res: Response) => {
       subjectPerformance[subject].avgPercentage /= subjectPerformance[subject].total;
     });
 
-    // Recent performance trend (last 5 tests)
-    const recentResults = results?.slice(0, 5) || [];
-    const recentAverage = recentResults.length > 0
-      ? recentResults.reduce((sum, r) => sum + (r.percentage || 0), 0) / recentResults.length
-      : 0;
-
     res.json({
       success: true,
       data: {
@@ -169,11 +141,7 @@ export const getMyPerformance = async (req: AuthRequest, res: Response) => {
         passedTests,
         passRate: totalTests > 0 ? (passedTests / totalTests) * 100 : 0,
         averagePercentage,
-        totalMarksObtained,
-        totalMarksPossible,
         subjectPerformance,
-        recentAverage,
-        improvementTrend: recentAverage > averagePercentage ? 'improving' : recentAverage < averagePercentage ? 'declining' : 'stable'
       },
     });
   } catch (error) {

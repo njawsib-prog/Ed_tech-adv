@@ -5,7 +5,6 @@ interface AuthRequest extends Request {
   user?: {
     id: string;
     role: string;
-    instituteId: string;
   };
 }
 
@@ -13,35 +12,17 @@ interface AuthRequest extends Request {
 export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
     const { page = 1, limit = 20, unreadOnly } = req.query;
 
     const offset = (Number(page) - 1) * Number(limit);
 
+    // In the optimized schema, notifications, complaints, and feedback are in one table
+    // Here we only want actual notifications
     let query = supabaseAdmin
       .from('notifications')
       .select('*', { count: 'exact' })
-      // Filter to notifications targeting students or all users.
-      // Use a single .or() so the conditions are OR-ed, not AND-ed.
+      .eq('type', 'notification')
       .or('target_audience.eq.all,target_audience.eq.students');
-
-    // Only filter by institute_id when available (single-tenant setups omit it)
-    if (instituteId) {
-      query = query.eq('institute_id', instituteId);
-    }
-
-    if (unreadOnly === 'true' && studentId) {
-      // Fetch the IDs of notifications already read by this student
-      const { data: readRows } = await supabaseAdmin
-        .from('notification_reads')
-        .select('notification_id')
-        .eq('student_id', studentId);
-
-      const readIds = readRows?.map((r) => r.notification_id) ?? [];
-      if (readIds.length > 0) {
-        query = query.not('id', 'in', readIds);
-      }
-    }
 
     query = query.order('created_at', { ascending: false });
     query = query.range(offset, offset + Number(limit) - 1);
@@ -49,29 +30,27 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
     const { data: notifications, error, count } = await query;
 
     if (error) {
-      console.error('Student getNotifications DB error:', JSON.stringify(error));
       return res.status(400).json({ success: false, error: error.message });
     }
 
-    // Get read status
-    const notificationIds = notifications?.map(n => n.id) || [];
-    const { data: reads } = await supabaseAdmin
-      .from('notification_reads')
-      .select('notification_id')
-      .eq('student_id', studentId)
-      .in('notification_id', notificationIds);
+    // Filter and add is_read status based on read_by JSONB array
+    const notificationsWithRead = notifications?.map(n => {
+      const readBy = n.read_by || [];
+      const isRead = readBy.some((r: any) => r.student_id === studentId);
+      return {
+        ...n,
+        is_read: isRead
+      };
+    });
 
-    const readIds = new Set(reads?.map(r => r.notification_id) || []);
-
-    const notificationsWithRead = notifications?.map(n => ({
-      ...n,
-      is_read: readIds.has(n.id)
-    }));
+    const finalData = unreadOnly === 'true' 
+      ? notificationsWithRead?.filter(n => !n.is_read) 
+      : notificationsWithRead;
 
     res.json({
       success: true,
       data: {
-        notifications: notificationsWithRead,
+        notifications: finalData,
         pagination: {
           total: count || 0,
           page: Number(page),
@@ -91,18 +70,29 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
-    const { error } = await supabaseAdmin
-      .from('notification_reads')
-      .insert({
-        notification_id: id,
-        student_id: studentId,
-        institute_id: instituteId
-      });
+    const { data: notification, error: fetchError } = await supabaseAdmin
+      .from('notifications')
+      .select('read_by, read_count')
+      .eq('id', id)
+      .single();
 
-    if (error && !error.message.includes('duplicate')) {
-      return res.status(400).json({ success: false, error: error.message });
+    if (fetchError || !notification) {
+      return res.status(404).json({ success: false, error: 'Notification not found' });
+    }
+
+    const readBy = notification.read_by || [];
+    const alreadyRead = readBy.some((r: any) => r.student_id === studentId);
+
+    if (!alreadyRead) {
+      const updatedReadBy = [...readBy, { student_id: studentId, read_at: new Date().toISOString() }];
+      await supabaseAdmin
+        .from('notifications')
+        .update({
+          read_by: updatedReadBy,
+          read_count: (notification.read_count || 0) + 1
+        })
+        .eq('id', id);
     }
 
     res.json({ success: true, message: 'Marked as read' });
@@ -116,34 +106,28 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
 export const markAllAsRead = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
-    // Get all unread notifications
-    let allQuery = supabaseAdmin
+    // Get all unread notifications for this student
+    const { data: notifications } = await supabaseAdmin
       .from('notifications')
-      .select('id')
+      .select('id, read_by, read_count')
+      .eq('type', 'notification')
       .or('target_audience.eq.all,target_audience.eq.students');
-    if (instituteId) {
-      allQuery = allQuery.eq('institute_id', instituteId);
-    }
-    const { data: notifications } = await allQuery;
 
-    if (!notifications || notifications.length === 0) {
-      return res.json({ success: true, message: 'No notifications to mark' });
-    }
+    if (!notifications) return res.json({ success: true });
 
-    const reads = notifications.map(n => ({
-      notification_id: n.id,
-      student_id: studentId,
-      institute_id: instituteId
-    }));
-
-    const { error } = await supabaseAdmin
-      .from('notification_reads')
-      .upsert(reads, { onConflict: 'notification_id,student_id' });
-
-    if (error) {
-      return res.status(400).json({ success: false, error: error.message });
+    for (const n of notifications) {
+      const readBy = n.read_by || [];
+      if (!readBy.some((r: any) => r.student_id === studentId)) {
+        const updatedReadBy = [...readBy, { student_id: studentId, read_at: new Date().toISOString() }];
+        await supabaseAdmin
+          .from('notifications')
+          .update({
+            read_by: updatedReadBy,
+            read_count: (n.read_count || 0) + 1
+          })
+          .eq('id', n.id);
+      }
     }
 
     res.json({ success: true, message: 'All marked as read' });
@@ -157,27 +141,19 @@ export const markAllAsRead = async (req: AuthRequest, res: Response) => {
 export const getUnreadCount = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
-    let totalQuery = supabaseAdmin
+    const { data: notifications } = await supabaseAdmin
       .from('notifications')
-      .select('*', { count: 'exact', head: true })
+      .select('read_by')
+      .eq('type', 'notification')
       .or('target_audience.eq.all,target_audience.eq.students');
-    if (instituteId) {
-      totalQuery = totalQuery.eq('institute_id', instituteId);
-    }
-    const { count: total } = await totalQuery;
 
-    let readQuery = supabaseAdmin
-      .from('notification_reads')
-      .select('*', { count: 'exact', head: true })
-      .eq('student_id', studentId);
-    if (instituteId) {
-      readQuery = readQuery.eq('institute_id', instituteId);
-    }
-    const { count: read } = await readQuery;
+    const unreadCount = notifications?.filter(n => {
+      const readBy = n.read_by || [];
+      return !readBy.some((r: any) => r.student_id === studentId);
+    }).length || 0;
 
-    res.json({ success: true, data: { unreadCount: (total || 0) - (read || 0) } });
+    res.json({ success: true, data: { unreadCount } });
   } catch (error) {
     console.error('Get unread count error:', error);
     res.status(500).json({ success: false, error: 'Failed to get unread count' });
@@ -188,7 +164,6 @@ export const getUnreadCount = async (req: AuthRequest, res: Response) => {
 export const submitComplaint = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
     const { title, description, category, priority } = req.body;
 
     if (!title || !description || !category) {
@@ -196,14 +171,15 @@ export const submitComplaint = async (req: AuthRequest, res: Response) => {
     }
 
     const { data, error } = await supabaseAdmin
-      .from('complaints')
+      .from('notifications')
       .insert({
         student_id: studentId,
         title,
-        description,
+        message: description,
+        type: 'complaint',
         category,
-        priority: priority || 'medium',
-        status: 'open'
+        priority_level: priority || 'medium',
+        complaint_status: 'open'
       })
       .select()
       .single();
@@ -223,26 +199,12 @@ export const submitComplaint = async (req: AuthRequest, res: Response) => {
 export const getMyComplaints = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
     const { data, error } = await supabaseAdmin
-      .from('complaints')
-      .select(`
-        id,
-        title,
-        description,
-        category,
-        status,
-        priority,
-        created_at,
-        updated_at,
-        complaint_replies (
-          id,
-          message,
-          created_at
-        )
-      `)
+      .from('notifications')
+      .select('*')
       .eq('student_id', studentId)
+      .eq('type', 'complaint')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -261,27 +223,13 @@ export const getComplaintById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
     const { data, error } = await supabaseAdmin
-      .from('complaints')
-      .select(`
-        id,
-        title,
-        description,
-        category,
-        status,
-        priority,
-        created_at,
-        updated_at,
-        complaint_replies (
-          id,
-          message,
-          created_at
-        )
-      `)
+      .from('notifications')
+      .select('*')
       .eq('id', id)
       .eq('student_id', studentId)
+      .eq('type', 'complaint')
       .single();
 
     if (error) {
@@ -299,7 +247,6 @@ export const getComplaintById = async (req: AuthRequest, res: Response) => {
 export const submitFeedback = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
     const { type, rating, subject, message } = req.body;
 
     if (!type || !rating) {
@@ -307,14 +254,14 @@ export const submitFeedback = async (req: AuthRequest, res: Response) => {
     }
 
     const { data, error } = await supabaseAdmin
-      .from('feedback')
+      .from('notifications')
       .insert({
-        institute_id: instituteId,
         student_id: studentId,
-        type,
-        rating,
-        subject,
-        message
+        title: subject || 'Feedback',
+        message: message || '',
+        type: 'feedback',
+        category: type,
+        rating: rating
       })
       .select()
       .single();
@@ -334,13 +281,12 @@ export const submitFeedback = async (req: AuthRequest, res: Response) => {
 export const getMyFeedback = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
     const { data, error } = await supabaseAdmin
-      .from('feedback')
-      .select('id, type, rating, subject, created_at')
+      .from('notifications')
+      .select('id, category, rating, title, created_at')
       .eq('student_id', studentId)
-      .eq('institute_id', instituteId)
+      .eq('type', 'feedback')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -352,4 +298,16 @@ export const getMyFeedback = async (req: AuthRequest, res: Response) => {
     console.error('Get my feedback error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch feedback' });
   }
+};
+
+export default {
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
+  getUnreadCount,
+  submitComplaint,
+  getMyComplaints,
+  getComplaintById,
+  submitFeedback,
+  getMyFeedback,
 };

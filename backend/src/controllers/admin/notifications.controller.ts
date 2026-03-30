@@ -5,66 +5,41 @@ interface AuthRequest extends Request {
   user?: {
     id: string;
     role: string;
-    instituteId: string;
   };
 }
-
-// Maps the new target_audience values to the legacy target_type column's allowed values.
-// target_type only accepts 'all' | 'course' | 'student'; 'students' and 'admins' both
-// map to 'all' for backward compatibility with the original schema constraint.
-const TARGET_TYPE_MAP: Record<string, string> = {
-  all: 'all',
-  students: 'all',
-  admins: 'all',
-  course: 'course',
-  student: 'student',
-};
-
 
 // Get all notifications
 export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
-    const instituteId = req.user?.instituteId;
-    const { page = 1, limit = 20, type, targetAudience } = req.query;
-
+    const { page = 1, limit = 20, category } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
     let query = supabaseAdmin
       .from('notifications')
-      .select('*', { count: 'exact' });
+      .select('*', { count: 'exact' })
+      .eq('type', 'notification');
 
-    // Only filter by institute_id when it is available (single-tenant setups omit it)
-    if (instituteId) {
-      query = query.eq('institute_id', instituteId);
-    }
-
-    if (type) {
-      query = query.eq('type', type);
-    }
-    // Support both targetAudience (new) and target_type (original) for filtering
-    if (targetAudience) {
-      query = query.or(`target_audience.eq.${targetAudience},target_type.eq.${targetAudience}`);
+    if (category) {
+      query = query.eq('category', category);
     }
 
     query = query.order('created_at', { ascending: false });
     query = query.range(offset, offset + Number(limit) - 1);
 
-    const { data, error, count } = await query;
+    const { data: notifications, error, count } = await query;
 
     if (error) {
-      console.error('Admin getNotifications DB error:', JSON.stringify(error));
       return res.status(400).json({ success: false, error: error.message });
     }
 
     res.json({
       success: true,
       data: {
-        notifications: data,
+        notifications,
         pagination: {
           total: count || 0,
           page: Number(page),
-          limit: Number(limit),
-          totalPages: Math.ceil((count || 0) / Number(limit))
+          limit: Number(limit)
         }
       }
     });
@@ -77,70 +52,31 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
 // Create notification
 export const createNotification = async (req: AuthRequest, res: Response) => {
   try {
-    console.log("REQ BODY:", req.body);
     const adminId = req.user?.id;
-    const instituteId = req.user?.instituteId;
-    const { title, message, type, targetAudience, actionUrl, scheduledAt, targetType } = req.body;
+    const { title, message, category, target_audience, target_id, priority, scheduled_at } = req.body;
 
     if (!title || !message) {
       return res.status(400).json({ success: false, error: 'Title and message are required' });
     }
-
-    const VALID_TYPES = ['info', 'warning', 'success', 'error'] as const;
-    // Support both target_audience (new) and target_type (original)
-    const VALID_AUDIENCES = ['all', 'students', 'admins'] as const;
-    const VALID_TARGET_TYPES = ['all', 'course', 'student'] as const;
-
-    if (type && !VALID_TYPES.includes(type)) {
-      console.warn(`createNotification: invalid type "${type}", defaulting to "info"`);
-    }
-    if (targetAudience && !VALID_AUDIENCES.includes(targetAudience)) {
-      console.warn(`createNotification: invalid targetAudience "${targetAudience}", defaulting to "all"`);
-    }
-    if (targetType && !VALID_TARGET_TYPES.includes(targetType)) {
-      console.warn(`createNotification: invalid targetType "${targetType}", defaulting to "all"`);
-    }
-
-    const resolvedType = VALID_TYPES.includes(type) ? type : 'info';
-    // Prefer targetAudience if provided, fall back to targetType
-    const resolvedAudience = VALID_AUDIENCES.includes(targetAudience) 
-      ? targetAudience 
-      : (VALID_TARGET_TYPES.includes(targetType) ? targetType : 'all');
-
-    // Map the new target_audience values to the legacy target_type column's valid values.
-    const resolvedTargetType = TARGET_TYPE_MAP[resolvedAudience] ?? 'all';
 
     const { data, error } = await supabaseAdmin
       .from('notifications')
       .insert({
         title,
         message,
-        type: resolvedType,
-        target_audience: resolvedAudience,
-        target_type: resolvedTargetType,
-        action_url: actionUrl || null,
-        scheduled_at: scheduledAt || null,
-        // Set sent_at for immediate visibility - allows students to see notifications right away
-        sent_at: scheduledAt ? null : new Date().toISOString(),
-        institute_id: instituteId || null,
+        type: 'notification',
+        category: category || 'announcement',
+        target_audience: target_audience || 'all',
+        target_id: target_id,
+        priority: priority || 'medium',
+        scheduled_at: scheduled_at,
+        sent_at: scheduled_at ? null : new Date().toISOString(),
         created_by: adminId
       })
       .select()
       .single();
 
     if (error) {
-      console.error("SUPABASE ERROR (createNotification):", JSON.stringify(error));
-      console.error("Insert data:", JSON.stringify({
-        title,
-        message,
-        type: resolvedType,
-        target_audience: resolvedAudience,
-        target_type: resolvedTargetType,
-        action_url: actionUrl,
-        scheduled_at: scheduledAt,
-        institute_id: instituteId || null,
-        created_by: adminId
-      }));
       return res.status(400).json({ success: false, error: error.message });
     }
 
@@ -155,25 +91,18 @@ export const createNotification = async (req: AuthRequest, res: Response) => {
 export const updateNotification = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const instituteId = req.user?.instituteId;
-    const { title, message, type, targetAudience, actionUrl, scheduledAt } = req.body;
+    const updates = req.body;
 
-    const updateData: Record<string, any> = {};
-    if (title !== undefined) updateData.title = title;
-    if (message !== undefined) updateData.message = message;
-    if (type !== undefined) updateData.type = type;
-    if (targetAudience !== undefined) updateData.target_audience = targetAudience;
-    if (actionUrl !== undefined) updateData.action_url = actionUrl;
-    if (scheduledAt !== undefined) updateData.scheduled_at = scheduledAt;
-
-    let updateNotifQuery = supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('notifications')
-      .update(updateData)
-      .eq('id', id);
-    if (instituteId) {
-      updateNotifQuery = updateNotifQuery.eq('institute_id', instituteId);
-    }
-    const { data, error } = await updateNotifQuery.select().single();
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('type', 'notification')
+      .select()
+      .single();
 
     if (error) {
       return res.status(400).json({ success: false, error: error.message });
@@ -190,16 +119,12 @@ export const updateNotification = async (req: AuthRequest, res: Response) => {
 export const deleteNotification = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const instituteId = req.user?.instituteId;
 
-    let deleteNotifQuery = supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('notifications')
       .delete()
-      .eq('id', id);
-    if (instituteId) {
-      deleteNotifQuery = deleteNotifQuery.eq('institute_id', instituteId);
-    }
-    const { error } = await deleteNotifQuery;
+      .eq('id', id)
+      .eq('type', 'notification');
 
     if (error) {
       return res.status(400).json({ success: false, error: error.message });
@@ -212,83 +137,26 @@ export const deleteNotification = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Broadcast notification to all students
-export const broadcastNotification = async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const instituteId = req.user?.instituteId;
-
-    // Get the notification
-    let broadcastFetchQuery = supabaseAdmin
-      .from('notifications')
-      .select('*')
-      .eq('id', id);
-    if (instituteId) {
-      broadcastFetchQuery = broadcastFetchQuery.eq('institute_id', instituteId);
-    }
-    const { data: notification, error: fetchError } = await broadcastFetchQuery.single();
-
-    if (fetchError || !notification) {
-      return res.status(404).json({ success: false, error: 'Notification not found' });
-    }
-
-    // Mark as sent
-    const { error } = await supabaseAdmin
-      .from('notifications')
-      .update({ sent_at: new Date().toISOString() })
-      .eq('id', id);
-
-    if (error) {
-      return res.status(400).json({ success: false, error: error.message });
-    }
-
-    // TODO: Integrate with push notification service or email
-
-    res.json({ success: true, message: 'Notification broadcasted successfully', data: { notification } });
-  } catch (error) {
-    console.error('Broadcast notification error:', error);
-    res.status(500).json({ success: false, error: 'Failed to broadcast notification' });
-  }
-};
-
 // Get complaints
 export const getComplaints = async (req: AuthRequest, res: Response) => {
   try {
-    const instituteId = req.user?.instituteId;
-    const { page = 1, limit = 20, status, category } = req.query;
-
+    const { page = 1, limit = 20, status } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
     let query = supabaseAdmin
-      .from('complaints')
+      .from('notifications')
       .select(`
-        id,
-        title,
-        description,
-        category,
-        status,
-        priority,
-        created_at,
-        updated_at,
-        students (
+        *,
+        users!notifications_student_id_fkey (
           id,
           name,
           email
-        ),
-        complaint_replies (
-          id,
-          message,
-          created_at,
-          sender_id,
-          sender_role
         )
-      `, { count: 'exact' });
+      `, { count: 'exact' })
+      .eq('type', 'complaint');
 
     if (status) {
-      query = query.eq('status', status);
-    }
-    if (category) {
-      query = query.eq('category', category);
+      query = query.eq('complaint_status', status);
     }
 
     query = query.order('created_at', { ascending: false });
@@ -307,8 +175,7 @@ export const getComplaints = async (req: AuthRequest, res: Response) => {
         pagination: {
           total: count || 0,
           page: Number(page),
-          limit: Number(limit),
-          totalPages: Math.ceil((count || 0) / Number(limit))
+          limit: Number(limit)
         }
       }
     });
@@ -318,108 +185,23 @@ export const getComplaints = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Get complaint by ID
-export const getComplaintById = async (req: AuthRequest, res: Response) => {
+// Resolve complaint
+export const resolveComplaint = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const instituteId = req.user?.instituteId;
-
-    const { data, error } = await supabaseAdmin
-      .from('complaints')
-      .select(`
-        id,
-        title,
-        description,
-        category,
-        status,
-        priority,
-        created_at,
-        updated_at,
-        students (
-          id,
-          name,
-          email
-        ),
-        complaint_replies (
-          id,
-          message,
-          created_at,
-          sender_id,
-          sender_role
-        )
-      `)
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      return res.status(404).json({ success: false, error: 'Complaint not found' });
-    }
-
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Get complaint error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch complaint' });
-  }
-};
-
-// Reply to complaint
-export const replyToComplaint = async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const instituteId = req.user?.instituteId;
+    const { notes } = req.body;
     const adminId = req.user?.id;
-    const { message, updateStatus } = req.body;
-
-    if (!message) {
-      return res.status(400).json({ success: false, error: 'Message is required' });
-    }
-
-    // Create reply
-    const { data: reply, error: replyError } = await supabaseAdmin
-      .from('complaint_replies')
-      .insert({
-        complaint_id: id,
-        sender_id: adminId,
-        sender_role: 'admin',
-        message
-      })
-      .select()
-      .single();
-
-    if (replyError) {
-      return res.status(400).json({ success: false, error: replyError.message });
-    }
-
-    // Update complaint status if provided
-    if (updateStatus) {
-      await supabaseAdmin
-        .from('complaints')
-        .update({ status: updateStatus, updated_at: new Date().toISOString() })
-        .eq('id', id);
-    }
-
-    res.status(201).json({ success: true, data: reply });
-  } catch (error) {
-    console.error('Reply to complaint error:', error);
-    res.status(500).json({ success: false, error: 'Failed to reply to complaint' });
-  }
-};
-
-// Update complaint status
-export const updateComplaintStatus = async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const instituteId = req.user?.instituteId;
-    const { status, priority } = req.body;
-
-    const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
-    if (status) updateData.status = status;
-    if (priority) updateData.priority = priority;
 
     const { data, error } = await supabaseAdmin
-      .from('complaints')
-      .update(updateData)
+      .from('notifications')
+      .update({
+        complaint_status: 'resolved',
+        assigned_to: adminId,
+        new_value: { resolution_notes: notes, resolved_at: new Date().toISOString() },
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
+      .eq('type', 'complaint')
       .select()
       .single();
 
@@ -429,51 +211,30 @@ export const updateComplaintStatus = async (req: AuthRequest, res: Response) => 
 
     res.json({ success: true, data });
   } catch (error) {
-    console.error('Update complaint status error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update complaint' });
+    console.error('Resolve complaint error:', error);
+    res.status(500).json({ success: false, error: 'Failed to resolve complaint' });
   }
 };
 
 // Get feedback
 export const getFeedback = async (req: AuthRequest, res: Response) => {
   try {
-    const instituteId = req.user?.instituteId;
-    const { page = 1, limit = 20, type, rating } = req.query;
-
+    const { page = 1, limit = 20 } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
-    let feedbackQuery = supabaseAdmin
-      .from('feedback')
+    const { data, error, count } = await supabaseAdmin
+      .from('notifications')
       .select(`
-        id,
-        type,
-        rating,
-        subject,
-        message,
-        created_at,
-        students (
+        *,
+        users!notifications_student_id_fkey (
           id,
           name,
-          email,
-          roll_number
+          email
         )
-      `, { count: 'exact' });
-
-    if (instituteId) {
-      feedbackQuery = feedbackQuery.eq('institute_id', instituteId);
-    }
-
-    if (type) {
-      feedbackQuery = feedbackQuery.eq('type', type);
-    }
-    if (rating) {
-      feedbackQuery = feedbackQuery.eq('rating', rating);
-    }
-
-    feedbackQuery = feedbackQuery.order('created_at', { ascending: false });
-    feedbackQuery = feedbackQuery.range(offset, offset + Number(limit) - 1);
-
-    const { data, error, count } = await feedbackQuery;
+      `, { count: 'exact' })
+      .eq('type', 'feedback')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + Number(limit) - 1);
 
     if (error) {
       return res.status(400).json({ success: false, error: error.message });
@@ -486,8 +247,7 @@ export const getFeedback = async (req: AuthRequest, res: Response) => {
         pagination: {
           total: count || 0,
           page: Number(page),
-          limit: Number(limit),
-          totalPages: Math.ceil((count || 0) / Number(limit))
+          limit: Number(limit)
         }
       }
     });
@@ -497,49 +257,12 @@ export const getFeedback = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Get feedback statistics
-export const getFeedbackStats = async (req: AuthRequest, res: Response) => {
-  try {
-    const instituteId = req.user?.instituteId;
-
-    let feedbackStatsQuery = supabaseAdmin
-      .from('feedback')
-      .select('rating, type');
-    if (instituteId) {
-      feedbackStatsQuery = feedbackStatsQuery.eq('institute_id', instituteId);
-    }
-    const { data, error } = await feedbackStatsQuery;
-
-    if (error) {
-      return res.status(400).json({ success: false, error: error.message });
-    }
-
-    const totalFeedback = data?.length || 0;
-    const averageRating = totalFeedback > 0
-      ? data!.reduce((sum, f) => sum + (f.rating || 0), 0) / totalFeedback
-      : 0;
-
-    const ratingDistribution = [1, 2, 3, 4, 5].map(rating => ({
-      rating,
-      count: data?.filter(f => f.rating === rating).length || 0
-    }));
-
-    const typeDistribution = ['course', 'test', 'platform', 'other'].reduce((acc, type) => {
-      acc[type] = data?.filter(f => f.type === type).length || 0;
-      return acc;
-    }, {} as Record<string, number>);
-
-    res.json({
-      success: true,
-      data: {
-        totalFeedback,
-        averageRating,
-        ratingDistribution,
-        typeDistribution
-      }
-    });
-  } catch (error) {
-    console.error('Get feedback stats error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch feedback statistics' });
-  }
+export default {
+  getNotifications,
+  createNotification,
+  updateNotification,
+  deleteNotification,
+  getComplaints,
+  resolveComplaint,
+  getFeedback,
 };

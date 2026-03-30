@@ -18,7 +18,7 @@ export const getAllPayments = async (req: AuthRequest, res: Response): Promise<v
       .from('payments')
       .select(`
         *,
-        students!inner(
+        students:users!payments_student_id_fkey(
           id,
           name,
           email,
@@ -45,10 +45,6 @@ export const getAllPayments = async (req: AuthRequest, res: Response): Promise<v
 
     if (end_date) {
       query = query.lte('created_at', end_date);
-    }
-
-    if (search) {
-      query = query.or(`students.name.ilike.%${search}%,students.email.ilike.%${search}%,transaction_id.ilike.%${search}%`);
     }
 
     const from = ((parseInt(page as string) - 1) * parseInt(limit as string));
@@ -89,7 +85,7 @@ export const getPaymentsByBranch = async (req: AuthRequest, res: Response): Prom
       .from('payments')
       .select(`
         *,
-        students!inner(
+        students:users!payments_student_id_fkey(
           id,
           name,
           email
@@ -134,9 +130,9 @@ export const getDefaulters = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const { page = 1, limit = 10, branch_id } = req.query;
 
-    // Get students with pending payments or overdue payments
-    const { data: students, error } = await supabaseAdmin
-      .from('students')
+    // Get students with their payments
+    let query = supabaseAdmin
+      .from('users')
       .select(`
         id,
         name,
@@ -152,7 +148,14 @@ export const getDefaulters = async (req: AuthRequest, res: Response): Promise<vo
           status,
           created_at
         )
-      `);
+      `)
+      .eq('role', 'student');
+
+    if (branch_id) {
+      query = query.eq('branch_id', branch_id);
+    }
+
+    const { data: students, error } = await query;
 
     if (error) {
       console.error('Error fetching defaulters:', error);
@@ -176,16 +179,10 @@ export const getDefaulters = async (req: AuthRequest, res: Response): Promise<vo
       return null;
     }).filter(Boolean) || [];
 
-    // Filter by branch if specified
-    let filteredDefaulters = defaulters;
-    if (branch_id) {
-      filteredDefaulters = defaulters.filter((d: any) => d.branch_id === branch_id);
-    }
-
     // Pagination
     const startIndex = ((parseInt(page as string) - 1) * parseInt(limit as string));
     const endIndex = startIndex + parseInt(limit as string);
-    const paginatedDefaulters = filteredDefaulters.slice(startIndex, endIndex);
+    const paginatedDefaulters = defaulters.slice(startIndex, endIndex);
 
     res.json({
       success: true,
@@ -193,8 +190,8 @@ export const getDefaulters = async (req: AuthRequest, res: Response): Promise<vo
       pagination: {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
-        total: filteredDefaulters.length,
-        totalPages: Math.ceil(filteredDefaulters.length / parseInt(limit as string))
+        total: defaulters.length,
+        totalPages: Math.ceil(defaulters.length / parseInt(limit as string))
       }
     });
   } catch (error) {
@@ -242,7 +239,7 @@ export const generateReceipt = async (req: AuthRequest, res: Response): Promise<
       .from('payments')
       .select(`
         *,
-        students!inner(
+        students:users!payments_student_id_fkey(
           id,
           name,
           email
@@ -261,23 +258,9 @@ export const generateReceipt = async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
-    // Generate receipt data
-    const receiptData = {
-      receipt_number: `RCP-${Date.now()}-${payment.id.slice(0, 8)}`,
-      payment_id: payment.id,
-      student_name: payment.students.name,
-      student_email: payment.students.email,
-      amount: payment.amount,
-      payment_method: payment.payment_method,
-      transaction_id: payment.transaction_id,
-      date: payment.created_at,
-      branch_name: payment.branches?.name,
-      branch_location: payment.branches?.location
-    };
-
     res.json({
       success: true,
-      data: receiptData
+      data: payment
     });
   } catch (error) {
     console.error('Error generating receipt:', error);
@@ -315,31 +298,12 @@ export const getPaymentAnalytics = async (req: AuthRequest, res: Response): Prom
       return p.status === 'pending' ? sum + (p.amount || 0) : sum;
     }, 0) || 0;
 
-    const completedCount = payments?.filter(p => p.status === 'completed').length || 0;
-    const pendingCount = payments?.filter(p => p.status === 'pending').length || 0;
-    const failedCount = payments?.filter(p => p.status === 'failed').length || 0;
-
-    // Branch-wise breakdown
-    const branchBreakdown = payments?.reduce((acc, p) => {
-      const branchId = p.branch_id || 'unassigned';
-      if (!acc[branchId]) {
-        acc[branchId] = { total: 0, completed: 0, pending: 0 };
-      }
-      acc[branchId].total += p.amount || 0;
-      if (p.status === 'completed') acc[branchId].completed += p.amount || 0;
-      if (p.status === 'pending') acc[branchId].pending += p.amount || 0;
-      return acc;
-    }, {} as Record<string, any>) || {};
-
     res.json({
       success: true,
       data: {
         totalRevenue,
         pendingAmount,
-        completedCount,
-        pendingCount,
-        failedCount,
-        branchBreakdown
+        totalTransactions: payments?.length || 0
       }
     });
   } catch (error) {

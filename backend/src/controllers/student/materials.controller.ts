@@ -5,7 +5,6 @@ interface AuthRequest extends Request {
   user?: {
     id: string;
     role: string;
-    instituteId: string;
   };
 }
 
@@ -13,8 +12,7 @@ interface AuthRequest extends Request {
 export const getStudyMaterials = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
-    const { subjectId, type, search } = req.query;
+    const { subject, type, search } = req.query;
 
     let query = supabaseAdmin
       .from('study_materials')
@@ -26,27 +24,18 @@ export const getStudyMaterials = async (req: AuthRequest, res: Response) => {
         url,
         file_size,
         created_at,
-        subjects (
+        subject,
+        module,
+        course_id,
+        courses (
           id,
-          name,
-          modules (
-            id,
-            name,
-            courses (
-              id,
-              name
-            )
-          )
+          name
         )
       `)
       .eq('is_published', true);
 
-    if (instituteId) {
-      query = query.eq('institute_id', instituteId);
-    }
-
-    if (subjectId) {
-      query = query.eq('subject_id', subjectId);
+    if (subject) {
+      query = query.eq('subject', subject);
     }
     if (type) {
       query = query.eq('type', type);
@@ -75,9 +64,8 @@ export const getMaterialById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
-    let byIdQuery = supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('study_materials')
       .select(`
         id,
@@ -88,27 +76,42 @@ export const getMaterialById = async (req: AuthRequest, res: Response) => {
         file_size,
         content,
         created_at,
-        subjects (
-          id,
-          name
-        )
+        subject,
+        module,
+        viewed_by,
+        view_count
       `)
       .eq('id', id)
-      .eq('is_published', true);
-    if (instituteId) {
-      byIdQuery = byIdQuery.eq('institute_id', instituteId);
-    }
-    const { data, error } = await byIdQuery.single();
+      .eq('is_published', true)
+      .single();
 
-    if (error) {
+    if (error || !data) {
       return res.status(404).json({ success: false, error: 'Material not found' });
     }
 
-    // Log material view
-    await supabaseAdmin.from('material_views').insert({
-      material_id: id,
-      student_id: studentId,
-    });
+    // Log material view in the merged study_materials table
+    const viewedBy = data.viewed_by || [];
+    const alreadyViewed = viewedBy.some((v: any) => v.student_id === studentId);
+    
+    if (!alreadyViewed) {
+      const updatedViewedBy = [...viewedBy, { student_id: studentId, viewed_at: new Date().toISOString() }];
+      await supabaseAdmin
+        .from('study_materials')
+        .update({
+          viewed_by: updatedViewedBy,
+          view_count: (data.view_count || 0) + 1,
+          last_viewed_at: new Date().toISOString()
+        })
+        .eq('id', id);
+    } else {
+      // Just update last_viewed_at
+      await supabaseAdmin
+        .from('study_materials')
+        .update({
+          last_viewed_at: new Date().toISOString()
+        })
+        .eq('id', id);
+    }
 
     res.json({ success: true, data });
   } catch (error) {
@@ -120,10 +123,9 @@ export const getMaterialById = async (req: AuthRequest, res: Response) => {
 // Get materials by subject
 export const getMaterialsBySubject = async (req: AuthRequest, res: Response) => {
   try {
-    const { subjectId } = req.params;
-    const instituteId = req.user?.instituteId;
+    const { subjectId } = req.params; // subjectId is actually the subject name in the new schema
 
-    let subjectMatsQuery = supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('study_materials')
       .select(`
         id,
@@ -132,15 +134,13 @@ export const getMaterialsBySubject = async (req: AuthRequest, res: Response) => 
         type,
         url,
         file_size,
-        created_at
+        created_at,
+        subject,
+        module
       `)
-      .eq('subject_id', subjectId)
-      .eq('is_published', true);
-    if (instituteId) {
-      subjectMatsQuery = subjectMatsQuery.eq('institute_id', instituteId);
-    }
-    subjectMatsQuery = subjectMatsQuery.order('created_at', { ascending: false });
-    const { data, error } = await subjectMatsQuery;
+      .eq('subject', subjectId)
+      .eq('is_published', true)
+      .order('created_at', { ascending: false });
 
     if (error) {
       return res.status(400).json({ success: false, error: error.message });
@@ -158,59 +158,41 @@ export const getRecentlyViewed = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
 
-    const { data, error } = await supabaseAdmin
-      .from('material_views')
-      .select(`
-        viewed_at,
-        study_materials (
-          id,
-          title,
-          type,
-          subjects (
-            name
-          )
-        )
-      `)
-      .eq('student_id', studentId)
-      .order('viewed_at', { ascending: false })
-      .limit(10);
+    // We have to filter by student_id inside the viewed_by JSONB array
+    // This is not very efficient in mock mode, but for the rebuild we follow the schema.
+    // In real Postgres, we would use JSONB operators.
+    const { data: allMaterials, error } = await supabaseAdmin
+      .from('study_materials')
+      .select('id, title, type, subject, viewed_by, last_viewed_at')
+      .order('last_viewed_at', { ascending: false });
 
     if (error) {
       return res.status(400).json({ success: false, error: error.message });
     }
 
-    const formattedData = data?.map(v => ({
-      ...v.study_materials,
-      viewedAt: v.viewed_at
-    })) || [];
+    const recentlyViewed = allMaterials?.filter(m => {
+      const viewedBy = m.viewed_by || [];
+      return viewedBy.some((v: any) => v.student_id === studentId);
+    }).slice(0, 10) || [];
 
-    res.json({ success: true, data: formattedData });
+    res.json({ success: true, data: recentlyViewed });
   } catch (error) {
     console.error('Get recently viewed error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch recently viewed' });
   }
 };
 
-// Get student's assigned subjects (from test assignments)
+// Get student's assigned subjects (from results table)
 export const getMySubjects = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
 
-    // Get subjects from assigned tests
+    // Get subjects from assigned tests in results table
     const { data, error } = await supabaseAdmin
-      .from('test_assignments')
+      .from('results')
       .select(`
         tests (
-          subjects (
-            id,
-            name,
-            modules (
-              name,
-              courses (
-                name
-              )
-            )
-          )
+          subject
         )
       `)
       .eq('student_id', studentId);
@@ -220,15 +202,9 @@ export const getMySubjects = async (req: AuthRequest, res: Response) => {
     }
 
     // Deduplicate subjects
-    const subjectsMap = new Map();
-    data?.forEach(assignment => {
-      const subject = (assignment.tests as any)?.subjects;
-      if (subject && !subjectsMap.has(subject.id)) {
-        subjectsMap.set(subject.id, subject);
-      }
-    });
+    const subjects = Array.from(new Set(data?.map(record => record.tests?.subject).filter(Boolean)));
 
-    res.json({ success: true, data: Array.from(subjectsMap.values()) });
+    res.json({ success: true, data: subjects });
   } catch (error) {
     console.error('Get my subjects error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch subjects' });

@@ -20,12 +20,17 @@ export const getStudentTests = async (req: StudentRequest, res: Response): Promi
       return;
     }
 
-    // Get all assigned tests
-    const { data: assignments, error } = await supabaseAdmin
-      .from('test_assignments')
+    // In the optimized schema, everything is in the results table
+    const { data: results, error } = await supabaseAdmin
+      .from('results')
       .select(`
         id,
+        assignment_status,
         status,
+        score,
+        total_marks,
+        percentage,
+        submitted_at,
         start_time,
         tests (
           id,
@@ -45,31 +50,31 @@ export const getStudentTests = async (req: StudentRequest, res: Response): Promi
       return;
     }
 
-    // Get results for completed tests - use correct field names
-    const { data: results } = await supabaseAdmin
-      .from('results')
-      .select('id, test_id, score, total_marks, percentage, submitted_at')
-      .eq('student_id', studentId);
-
-    const resultsMap = new Map(results?.map((r) => [r.test_id, r]) || []);
-
     // Group tests by status
     const pending: any[] = [];
     const scheduled: any[] = [];
     const completed: any[] = [];
 
-    assignments?.forEach((assignment: any) => {
-      const test = assignment.tests;
-      const result = resultsMap.get(test.id);
+    results?.forEach((record: any) => {
+      const test = record.tests;
+      if (!test) return;
 
       const testData = {
-        assignment_id: assignment.id,
+        result_id: record.id,
         ...test,
         course_name: test.courses?.name,
-        result: result || null,
+        assignment_status: record.assignment_status,
+        result: record.assignment_status === 'completed' ? {
+          id: record.id,
+          score: record.score,
+          total_marks: record.total_marks,
+          percentage: record.percentage,
+          submitted_at: record.submitted_at,
+          status: record.status
+        } : null,
       };
 
-      if (assignment.status === 'completed' || result) {
+      if (record.assignment_status === 'completed') {
         completed.push(testData);
       } else if (!test.is_active || (test.scheduled_at && new Date(test.scheduled_at) > new Date())) {
         scheduled.push(testData);
@@ -103,15 +108,15 @@ export const getTestDetails = async (req: StudentRequest, res: Response): Promis
       return;
     }
 
-    // Check if student is assigned
-    const { data: assignment } = await supabaseAdmin
-      .from('test_assignments')
-      .select('*')
+    // Check if student is assigned (has a record in results)
+    const { data: resultRecord, error: resultError } = await supabaseAdmin
+      .from('results')
+      .select('id, assignment_status')
       .eq('test_id', id)
       .eq('student_id', studentId)
       .single();
 
-    if (!assignment) {
+    if (resultError || !resultRecord) {
       res.status(403).json({ success: false, error: 'Not assigned to this test' });
       return;
     }
@@ -143,23 +148,15 @@ export const getTestDetails = async (req: StudentRequest, res: Response): Promis
       .select('*', { count: 'exact', head: true })
       .eq('test_id', id);
 
-    // Check if already submitted
-    const { data: result } = await supabaseAdmin
-      .from('results')
-      .select('id')
-      .eq('test_id', id)
-      .eq('student_id', studentId)
-      .single();
-
     res.json({
       success: true,
       data: {
         ...test,
         course_name: (test.courses as any)?.name,
         question_count: questionCount || 0,
-        has_submitted: !!result,
-        result_id: result?.id ?? null,
-        assignment_status: assignment.status,
+        has_submitted: resultRecord.assignment_status === 'completed',
+        result_id: resultRecord.id,
+        assignment_status: resultRecord.assignment_status,
       },
     });
   } catch (error) {
@@ -179,28 +176,20 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
       return;
     }
 
-    // Check assignment
-    const { data: assignment } = await supabaseAdmin
-      .from('test_assignments')
-      .select('*')
+    // Check assignment in results table
+    const { data: resultRecord, error: resultError } = await supabaseAdmin
+      .from('results')
+      .select('id, assignment_status')
       .eq('test_id', id)
       .eq('student_id', studentId)
       .single();
 
-    if (!assignment) {
+    if (resultError || !resultRecord) {
       res.status(403).json({ success: false, error: 'Not assigned to this test' });
       return;
     }
 
-    // Check if already submitted
-    const { data: existingResult } = await supabaseAdmin
-      .from('results')
-      .select('id')
-      .eq('test_id', id)
-      .eq('student_id', studentId)
-      .single();
-
-    if (existingResult) {
+    if (resultRecord.assignment_status === 'completed') {
       res.status(400).json({ success: false, error: 'Already submitted this test' });
       return;
     }
@@ -229,21 +218,17 @@ export const startTest = async (req: StudentRequest, res: Response): Promise<voi
       return;
     }
 
-    // Shuffle questions (Fisher-Yates)
-    const shuffled = [...questions];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+    // Shuffle questions
+    const shuffled = [...questions].sort(() => Math.random() - 0.5);
 
-    // Update assignment status and start time
+    // Update assignment status and start time in results table
     await supabaseAdmin
-      .from('test_assignments')
+      .from('results')
       .update({
-        status: 'in_progress',
+        assignment_status: 'in_progress',
         start_time: new Date().toISOString(),
       })
-      .eq('id', assignment.id);
+      .eq('id', resultRecord.id);
 
     res.json({
       success: true,
@@ -265,10 +250,9 @@ export const submitTest = async (req: StudentRequest, res: Response): Promise<vo
   try {
     const { id } = req.params;
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
     const { answers, time_taken_secs } = req.body;
 
-    if (!studentId || !instituteId) {
+    if (!studentId) {
       res.status(401).json({ success: false, error: 'Unauthorized' });
       return;
     }
@@ -302,20 +286,21 @@ export const submitTest = async (req: StudentRequest, res: Response): Promise<vo
     const percentage = (score / total) * 100;
     const status = percentage >= 40 ? 'passed' : 'failed';
 
-    // Save result with standardized field names
+    // Update existing result record
     const { data: result, error } = await supabaseAdmin
       .from('results')
-      .insert({
-        institute_id: instituteId,
-        student_id: studentId,
-        test_id: id,
+      .update({
         score,
         total_marks: total,
         percentage,
         status,
         time_taken_seconds: time_taken_secs,
         answers: answersData,
+        assignment_status: 'completed',
+        submitted_at: new Date().toISOString(),
       })
+      .eq('test_id', id)
+      .eq('student_id', studentId)
       .select()
       .single();
 
@@ -323,16 +308,6 @@ export const submitTest = async (req: StudentRequest, res: Response): Promise<vo
       res.status(400).json({ success: false, error: error.message });
       return;
     }
-
-    // Update assignment status
-    await supabaseAdmin
-      .from('test_assignments')
-      .update({
-        status: 'completed',
-        end_time: new Date().toISOString(),
-      })
-      .eq('test_id', id)
-      .eq('student_id', studentId);
 
     res.json({
       success: true,

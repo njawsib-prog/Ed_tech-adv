@@ -9,7 +9,6 @@ const PAYMENT_HMAC_SECRET = process.env.PAYMENT_HMAC_SECRET || 'default-secret-c
 
 /**
  * Generate a unique, cryptographically secure receipt number.
- * Format: UUID + first 16 chars of SHA256(uuid + studentId + timestamp)
  */
 function generateReceiptNumber(studentId: string, timestamp: string): string {
   const base = uuidv4();
@@ -60,7 +59,7 @@ export const getPayments = async (req: AuthRequest, res: Response): Promise<void
 
     let query = supabaseAdmin
       .from('payments')
-      .select('*, students(name, email)')
+      .select('*, students:users!payments_student_id_fkey(id, name, email)')
       .order('created_at', { ascending: false });
 
     if (student_id) query = query.eq('student_id', student_id as string);
@@ -106,18 +105,21 @@ export const recordPayment = async (req: AuthRequest, res: Response): Promise<vo
     const receiptSignature = generateReceiptSignature(student_id as string, parsedAmount, txId, timestamp);
     const receiptNumber = generateReceiptNumber(student_id as string, timestamp);
 
-    // Insert payment record
+    // In the optimized schema, receipt fields are part of the payments table
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from('payments')
       .insert({
         student_id,
+        course_id: course_id || null,
         branch_id,
         amount: parsedAmount,
         status: (status as string) || 'pending',
         payment_method,
         transaction_id: txId,
         description,
+        receipt_number: receiptNumber,
         receipt_signature: receiptSignature,
+        issued_by: req.user?.id || null,
         created_at: timestamp,
       })
       .select()
@@ -128,37 +130,13 @@ export const recordPayment = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    // Create receipt record
-    const { data: receipt, error: receiptError } = await supabaseAdmin
-      .from('receipts')
-      .insert({
-        receipt_number: receiptNumber,
-        student_id,
-        course_id: course_id || null,
-        payment_id: payment.id,
-        amount: parsedAmount,
-        payment_method,
-        issued_by: req.user?.id || null,
-        signature_hash: receiptSignature,
-        issued_at: timestamp,
-        notes: description || null,
-      })
-      .select()
-      .single();
-
-    // Non-fatal if receipts table doesn't exist yet
-    if (receiptError) {
-      console.warn('[RecordPayment] Could not create receipt record:', receiptError.message);
-    }
-
     res.status(201).json({
       data: payment,
       receipt: {
         receipt_number: receiptNumber,
         signature: receiptSignature,
         timestamp,
-        receipt_id: receipt?.id || null,
-        verificationUrl: `/api/payments/${payment.id}/verify`,
+        verificationUrl: `/api/admin/payments/${payment.id}/verify`,
       },
     });
   } catch (error: unknown) {
@@ -172,12 +150,6 @@ export const updatePaymentStatus = async (req: AuthRequest, res: Response): Prom
   try {
     const { id } = req.params;
     const { status } = req.body;
-
-    const validStatuses = ['pending', 'completed', 'failed', 'refunded', 'cancelled'];
-    if (!validStatuses.includes(status as string)) {
-      res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
-      return;
-    }
 
     const { data, error } = await supabaseAdmin
       .from('payments')
@@ -198,56 +170,28 @@ export const updatePaymentStatus = async (req: AuthRequest, res: Response): Prom
   }
 };
 
-/**
- * Get receipt by payment ID
- */
 export const getPaymentReceipt = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    const { data: receipt, error } = await supabaseAdmin
-      .from('receipts')
-      .select('*, students(name, email), courses(name, title), admins(name)')
-      .eq('payment_id', id)
+    const { data: payment, error } = await supabaseAdmin
+      .from('payments')
+      .select('*, students:users!payments_student_id_fkey(id, name, email), courses(name, title)')
+      .eq('id', id)
       .single();
 
-    if (error || !receipt) {
-      // Fall back to payment record itself
-      const { data: payment, error: pErr } = await supabaseAdmin
-        .from('payments')
-        .select('*, students(name, email)')
-        .eq('id', id)
-        .single();
-
-      if (pErr || !payment) {
-        res.status(404).json({ error: 'Receipt not found' });
-        return;
-      }
-
-      res.json({
-        data: {
-          receipt_number: `PAY-${payment.id.substring(0, 8).toUpperCase()}`,
-          payment_id: payment.id,
-          amount: payment.amount,
-          payment_method: payment.payment_method,
-          issued_at: payment.created_at,
-          student: payment.students,
-          signature_hash: payment.receipt_signature,
-        },
-      });
+    if (error || !payment) {
+      res.status(404).json({ error: 'Payment not found' });
       return;
     }
 
-    res.json({ data: receipt });
+    res.json({ data: payment });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     res.status(500).json({ error: msg });
   }
 };
 
-/**
- * Verify payment receipt integrity
- */
 export const verifyPayment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -264,12 +208,7 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     if (!payment.receipt_signature) {
-      res.json({
-        paymentId: id,
-        verified: null,
-        message: 'Payment record exists but has no cryptographic signature (legacy payment)',
-        integrity: 'unknown',
-      });
+      res.json({ verified: null, message: 'No cryptographic signature' });
       return;
     }
 
@@ -282,22 +221,11 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
     );
 
     res.json({
-      paymentId: id,
       verified: isValid,
-      message: isValid
-        ? 'Payment receipt signature is valid'
-        : 'Payment receipt signature is INVALID – potential tampering detected',
-      integrity: isValid ? 'valid' : 'compromised',
-      details: {
-        studentId: payment.student_id,
-        amount: payment.amount,
-        transactionId: payment.transaction_id,
-        timestamp: payment.created_at,
-      },
+      message: isValid ? 'Valid' : 'Invalid',
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error('[VerifyPayment] Error:', error);
     res.status(500).json({ error: msg });
   }
 };

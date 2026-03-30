@@ -539,9 +539,10 @@ export const assignTest = async (req: Request, res: Response): Promise<void> => 
 
       if (test?.course_id) {
         const { data: students } = await supabaseAdmin
-          .from('students')
+          .from('users')
           .select('id')
           .eq('course_id', test.course_id)
+          .eq('role', 'student')
           .eq('is_active', true);
 
         targetStudentIds = students?.map((s) => s.id) || [];
@@ -553,15 +554,15 @@ export const assignTest = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // Create assignments
+    // Create assignments in results table
     const assignments = targetStudentIds.map((studentId: string) => ({
       test_id: id,
       student_id: studentId,
-      status: 'pending',
+      assignment_status: 'pending',
     }));
 
     const { error } = await supabaseAdmin
-      .from('test_assignments')
+      .from('results')
       .upsert(assignments, { onConflict: 'test_id,student_id' });
 
     if (error) {
