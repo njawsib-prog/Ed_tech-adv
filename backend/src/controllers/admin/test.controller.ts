@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { supabaseAdmin } from '../../db/supabaseAdmin';
 import { parseCSV, validateCSVStructure } from '../../utils/csvParser';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = require('pdf-parse');
+const pdfParse = require('pdf-parse');
 import mammoth from 'mammoth';
 
 interface TestRequest extends Request {

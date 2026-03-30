@@ -650,16 +650,29 @@ const mockStorage: MockTableData = {};
 
 // Initialize with seed data
 function initializeMockStorage(): void {
-  const adminPassword = bcrypt.hashSync('admin123', 10);
-  const studentPassword = bcrypt.hashSync('student123', 10);
+  // Password hash for "Password123!" from schema_optimized.sql
+  const passwordHash = '$2a$12$YQxDSwgObFBcZQzW69mZ0uIc58tmF1.EKlIS4pkX5aVyb9BRaL//.';
   
   mockStorage['admins'] = [
     {
-      id: uuidv4(),
-      email: 'admin@edtech.com',
-      password_hash: adminPassword,
-      name: 'System Admin',
+      id: 'cccccccc-0000-0000-0000-000000000001',
+      email: 'superadmin@edtech.com',
+      password_hash: passwordHash,
+      name: 'Super Admin',
       role: 'super_admin',
+      avatar_url: null,
+      is_active: true,
+      status: 'ACTIVE',
+      last_login: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'cccccccc-0000-0000-0000-000000000002',
+      email: 'branchadmin@edtech.com',
+      password_hash: passwordHash,
+      name: 'Branch Admin',
+      role: 'branch_admin',
       avatar_url: null,
       is_active: true,
       status: 'ACTIVE',
@@ -671,10 +684,10 @@ function initializeMockStorage(): void {
   
   mockStorage['students'] = [
     {
-      id: uuidv4(),
-      email: 'student@edtech.com',
-      password_hash: studentPassword,
-      name: 'Test Student',
+      id: 'cccccccc-0000-0000-0000-000000000003',
+      email: 'alice@student.com',
+      password_hash: passwordHash,
+      name: 'Alice Student',
       phone: '1234567890',
       course_id: null,
       avatar_url: null,
@@ -688,7 +701,7 @@ function initializeMockStorage(): void {
   
   // Initialize empty tables
   const tables = [
-    'institutes', 'branches', 'courses', 'modules', 'subjects', 'tests', 
+    'users', 'institutes', 'branches', 'courses', 'modules', 'subjects', 'tests', 
     'questions', 'test_attempts', 'results', 'study_materials',
     'notifications', 'complaints', 'feedback', 'settings',
     'payments', 'attendance'
