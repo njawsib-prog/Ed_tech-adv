@@ -15,7 +15,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string, role: 'admin' | 'student') => Promise<void>;
+  login: (email: string, password: string, role: 'admin' | 'student') => Promise<User | null>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -70,8 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: response.data?.data?.user 
       });
       console.log('[useAuth] STEP 5: Login successful, setting user state');
-      setUser(response.data.data?.user ?? null);
+      const loggedInUser = response.data.data?.user ?? null;
+      setUser(loggedInUser);
       console.log('[useAuth] STEP 6: Login function complete');
+      return loggedInUser;
     } catch (error: any) {
       console.error('[useAuth] STEP 7: Login failed with error:', error);
       console.error('[useAuth] STEP 7b: Error type:', typeof error);

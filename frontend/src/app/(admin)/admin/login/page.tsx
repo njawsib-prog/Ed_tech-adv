@@ -13,7 +13,11 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     if (!isLoading && user && adminRoles.includes(user.role)) {
-      router.push('/admin');
+      if (user.role === 'super_admin') {
+        router.push('/super-admin');
+      } else {
+        router.push('/admin');
+      }
     }
   }, [user, isLoading, router]);
 
