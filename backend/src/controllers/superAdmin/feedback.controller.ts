@@ -9,33 +9,30 @@ export const getAllFeedback = async (req: AuthRequest, res: Response): Promise<v
       limit = 10,
       search = '',
       branch_id,
-      type,
+      category,
       rating
     } = req.query;
 
     let query = supabaseAdmin
-      .from('feedback')
+      .from('notifications')
       .select(`
         *,
-        students!inner (
+        users!notifications_student_id_fkey (
           id,
           name,
           email,
-          branch_id
-        ),
-        branches (
-          id,
-          name
+          branch_id,
+          branches (
+            id,
+            name
+          )
         )
-      `, { count: 'exact' });
+      `, { count: 'exact' })
+      .eq('type', 'feedback');
 
     // Apply filters
-    if (branch_id) {
-      query = query.eq('branch_id', branch_id);
-    }
-
-    if (type) {
-      query = query.eq('type', type);
+    if (category) {
+      query = query.eq('category', category);
     }
 
     if (rating) {
@@ -43,7 +40,7 @@ export const getAllFeedback = async (req: AuthRequest, res: Response): Promise<v
     }
 
     if (search) {
-      query = query.or(`subject.ilike.%${search}%,message.ilike.%${search}%,students.name.ilike.%${search}%`);
+      query = query.or(`title.ilike.%${search}%,message.ilike.%${search}%`);
     }
 
     const from = ((parseInt(page as string) - 1) * parseInt(limit as string));
@@ -59,9 +56,14 @@ export const getAllFeedback = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
+    let filteredData = data || [];
+    if (branch_id) {
+      filteredData = filteredData.filter(f => (f as any).users?.branch_id === branch_id);
+    }
+
     res.json({
       success: true,
-      data: data || [],
+      data: filteredData,
       pagination: {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
@@ -77,25 +79,10 @@ export const getAllFeedback = async (req: AuthRequest, res: Response): Promise<v
 
 export const getFeedbackAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { branch_id, start_date, end_date } = req.query;
-
-    let query = supabaseAdmin
-      .from('feedback')
-      .select('type, rating, branch_id, subject, message, created_at');
-
-    if (branch_id) {
-      query = query.eq('branch_id', branch_id);
-    }
-
-    if (start_date) {
-      query = query.gte('created_at', start_date);
-    }
-
-    if (end_date) {
-      query = query.lte('created_at', end_date);
-    }
-
-    const { data: feedback } = await query;
+    const { data: feedback } = await supabaseAdmin
+      .from('notifications')
+      .select('category, rating, created_at')
+      .eq('type', 'feedback');
 
     const total = feedback?.length || 0;
 
@@ -110,64 +97,12 @@ export const getFeedbackAnalytics = async (req: AuthRequest, res: Response): Pro
       ? feedback.reduce((sum, f) => sum + (f.rating || 0), 0) / total
       : 0;
 
-    // Type breakdown
-    const typeBreakdown = feedback?.reduce((acc, f) => {
-      const type = f.type || 'other';
-      if (!acc[type]) {
-        acc[type] = { count: 0, totalRating: 0 };
-      }
-      acc[type].count++;
-      acc[type].totalRating += f.rating || 0;
-      return acc;
-    }, {} as Record<string, { count: number; totalRating: number }>) || {};
-
-    const typeStats = Object.entries(typeBreakdown).map(([type, stats]) => ({
-      type,
-      count: stats.count,
-      averageRating: stats.count > 0 ? Math.round((stats.totalRating / stats.count) * 100) / 100 : 0
-    }));
-
-    // Branch breakdown
-    const branchBreakdown = feedback?.reduce((acc, f) => {
-      const branchId = f.branch_id || 'unassigned';
-      if (!acc[branchId]) {
-        acc[branchId] = { count: 0, totalRating: 0 };
-      }
-      acc[branchId].count++;
-      acc[branchId].totalRating += f.rating || 0;
-      return acc;
-    }, {} as Record<string, { count: number; totalRating: number }>) || {};
-
-    // Monthly trend
-    const monthlyTrend = feedback?.reduce((acc, f) => {
-      const month = new Date(f.created_at).toLocaleString('default', { month: 'short', year: '2-digit' });
-      if (!acc[month]) {
-        acc[month] = { count: 0, totalRating: 0 };
-      }
-      acc[month].count++;
-      acc[month].totalRating += f.rating || 0;
-      return acc;
-    }, {} as Record<string, { count: number; totalRating: number }>) || {};
-
-    const trendData = Object.entries(monthlyTrend).map(([month, stats]) => ({
-      month,
-      count: stats.count,
-      averageRating: stats.count > 0 ? Math.round((stats.totalRating / stats.count) * 100) / 100 : 0
-    }));
-
     res.json({
       success: true,
       data: {
         total,
         ratingDistribution,
-        averageRating: Math.round(averageRating * 100) / 100,
-        typeStats,
-        branchBreakdown: Object.entries(branchBreakdown).map(([branchId, stats]) => ({
-          branchId,
-          count: stats.count,
-          averageRating: stats.count > 0 ? Math.round((stats.totalRating / stats.count) * 100) / 100 : 0
-        })),
-        monthlyTrend: trendData
+        averageRating: Math.round(averageRating * 100) / 100
       }
     });
   } catch (error) {
@@ -180,18 +115,19 @@ export const getFeedbackByBranch = async (req: AuthRequest, res: Response): Prom
   try {
     const { branch_id } = req.params;
 
-    const { data: feedback, error } = await supabaseAdmin
-      .from('feedback')
+    // We fetch all feedback and filter by student's branch_id
+    const { data, error } = await supabaseAdmin
+      .from('notifications')
       .select(`
         *,
-        students!inner (
+        users!notifications_student_id_fkey (
           id,
           name,
-          email
+          email,
+          branch_id
         )
       `)
-      .eq('branch_id', branch_id)
-      .order('created_at', { ascending: false });
+      .eq('type', 'feedback');
 
     if (error) {
       console.error('Error fetching branch feedback:', error);
@@ -199,15 +135,16 @@ export const getFeedbackByBranch = async (req: AuthRequest, res: Response): Prom
       return;
     }
 
-    const total = feedback?.length || 0;
-    const averageRating = total > 0 && feedback
-      ? feedback.reduce((sum, f) => sum + (f.rating || 0), 0) / total
+    const filteredFeedback = data?.filter(f => (f as any).users?.branch_id === branch_id) || [];
+    const total = filteredFeedback.length;
+    const averageRating = total > 0
+      ? filteredFeedback.reduce((sum, f) => sum + (f.rating || 0), 0) / total
       : 0;
 
     res.json({
       success: true,
       data: {
-        feedback: feedback || [],
+        feedback: filteredFeedback,
         stats: {
           total,
           averageRating: Math.round(averageRating * 100) / 100

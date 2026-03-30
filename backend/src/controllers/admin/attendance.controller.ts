@@ -6,7 +6,7 @@ export const getAttendance = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const { date, student_id, branch_id, course_id } = req.query;
     
-    let query = supabaseAdmin.from('attendance').select('*, students(name)');
+    let query = supabaseAdmin.from('attendance').select('*, students:users!attendance_student_id_fkey(name)');
 
     if (date) query = query.eq('date', date);
     if (student_id) query = query.eq('student_id', student_id);
@@ -25,28 +25,20 @@ export const getAttendance = async (req: AuthRequest, res: Response): Promise<vo
 
 /**
  * Get students filtered by course and branch for attendance marking
- * This endpoint returns active students that match the specified filters
  */
 export const getStudentsForAttendance = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { course_id, branch_id, date } = req.query;
 
-    // Build the query for active students (supports both new status and legacy is_active)
     let query = supabaseAdmin
-      .from('students')
+      .from('users')
       .select('id, name, email, roll_number, course_id, branch_id, courses(name), branches(name)')
-      .or('status.eq.ACTIVE,is_active.eq.true');
+      .eq('role', 'student')
+      .eq('status', 'ACTIVE');
 
-    // Apply filters
-    if (course_id) {
-      query = query.eq('course_id', course_id);
-    }
+    if (course_id) query = query.eq('course_id', course_id);
+    if (branch_id) query = query.eq('branch_id', branch_id);
 
-    if (branch_id) {
-      query = query.eq('branch_id', branch_id);
-    }
-
-    // Order by name for consistent display
     const { data: students, error: studentsError } = await query.order('name', { ascending: true });
 
     if (studentsError) {
@@ -54,7 +46,7 @@ export const getStudentsForAttendance = async (req: AuthRequest, res: Response):
       return;
     }
 
-    // If date is provided, check existing attendance records for that date
+    // If date is provided, check existing attendance records
     let attendanceMap: Map<string, any> = new Map();
     if (date) {
       let attendanceQuery = supabaseAdmin
@@ -62,55 +54,30 @@ export const getStudentsForAttendance = async (req: AuthRequest, res: Response):
         .select('id, student_id, status, notes, recorded_by, created_at')
         .eq('date', date);
 
-      if (course_id) {
-        attendanceQuery = attendanceQuery.eq('course_id', course_id);
-      }
-
-      if (branch_id) {
-        attendanceQuery = attendanceQuery.eq('branch_id', branch_id);
-      }
-
       const { data: existingAttendance } = await attendanceQuery;
-      
-      // Create a map of student_id to attendance record
       existingAttendance?.forEach(record => {
         attendanceMap.set(record.student_id, record);
       });
     }
 
-    // Enrich student data with attendance status if date provided
     const enrichedStudents = (students || []).map(student => {
       const attendanceRecord = attendanceMap.get(student.id);
       return {
         ...student,
         attendance_status: attendanceRecord ? attendanceRecord.status : null,
         attendance_id: attendanceRecord ? attendanceRecord.id : null,
-        attendance_notes: attendanceRecord ? attendanceRecord.notes : null,
-        attendance_recorded_by: attendanceRecord ? attendanceRecord.recorded_by : null,
-        attendance_recorded_at: attendanceRecord ? attendanceRecord.created_at : null,
       };
     });
 
-    res.json({ 
-      data: enrichedStudents,
-      meta: {
-        total: enrichedStudents.length,
-        course_id: course_id || null,
-        branch_id: branch_id || null,
-        date: date || null,
-        already_marked: enrichedStudents.filter((s: any) => s.attendance_status !== null).length,
-      }
-    });
+    res.json({ data: enrichedStudents });
   } catch (error: any) {
-    console.error('Get students for attendance error:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
 export const markAttendance = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { records } = req.body; // Array of { student_id, branch_id, course_id, date, status }
-
+    const { records } = req.body;
     const admin_id = req.user?.id;
 
     const formattedRecords = records.map((record: any) => ({
@@ -120,7 +87,7 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
 
     const { data, error } = await supabaseAdmin
       .from('attendance')
-      .insert(formattedRecords)
+      .upsert(formattedRecords, { onConflict: 'student_id,course_id,date' })
       .select();
 
     if (error) throw error;

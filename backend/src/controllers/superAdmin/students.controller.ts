@@ -15,7 +15,7 @@ export const getAllStudents = async (req: AuthRequest, res: Response): Promise<v
     } = req.query;
 
     let query = supabaseAdmin
-      .from('students')
+      .from('users')
       .select(`
         *,
         branches (
@@ -26,7 +26,8 @@ export const getAllStudents = async (req: AuthRequest, res: Response): Promise<v
           id,
           name
         )
-      `, { count: 'exact' });
+      `, { count: 'exact' })
+      .eq('role', 'student');
 
     // Apply filters
     if (branch_id) {
@@ -79,7 +80,7 @@ export const getStudentProfile = async (req: AuthRequest, res: Response): Promis
     const { id } = req.params;
 
     const { data: student, error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .select(`
         *,
         branches (
@@ -91,12 +92,12 @@ export const getStudentProfile = async (req: AuthRequest, res: Response): Promis
         courses (
           id,
           name,
-          level,
-          duration,
-          duration_unit
+          category,
+          price
         )
       `)
       .eq('id', id)
+      .eq('role', 'student')
       .single();
 
     if (error || !student) {
@@ -115,7 +116,7 @@ export const getStudentProfile = async (req: AuthRequest, res: Response): Promis
         )
       `)
       .eq('student_id', id)
-      .order('created_at', { ascending: false });
+      .order('enrolled_at', { ascending: false });
 
     res.json({
       success: true,
@@ -244,9 +245,10 @@ export const updateStudentStatus = async (req: AuthRequest, res: Response): Prom
     updateData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .update(updateData)
       .eq('id', id)
+      .eq('role', 'student')
       .select()
       .single();
 
@@ -287,7 +289,7 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
     const password_hash = await bcrypt.hash(password, 12);
 
     const { data: student, error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .insert({
         name,
         email,
@@ -296,6 +298,7 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
         phone,
         branch_id,
         course_id,
+        role: 'student',
         status: 'ACTIVE',
         is_active: true
       })
@@ -304,10 +307,6 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
 
     if (error) {
       console.error('Error creating student:', error);
-      if (error.code === '23505') {
-        res.status(400).json({ success: false, error: 'Email already exists' });
-        return;
-      }
       res.status(500).json({ success: false, error: 'Failed to create student' });
       return;
     }
@@ -327,9 +326,10 @@ export const deleteStudent = async (req: AuthRequest, res: Response): Promise<vo
     const { id } = req.params;
 
     const { error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('role', 'student');
 
     if (error) {
       console.error('Error deleting student:', error);

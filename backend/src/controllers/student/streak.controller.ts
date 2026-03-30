@@ -7,7 +7,7 @@ export const getStreakInfo = async (req: AuthRequest, res: Response): Promise<vo
     const student_id = req.user?.id;
 
     const { data: student, error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .select('current_streak, max_streak, last_activity_date')
       .eq('id', student_id)
       .single();
@@ -30,7 +30,7 @@ export const updateStreak = async (req: AuthRequest, res: Response): Promise<voi
     const today = new Date().toISOString().split('T')[0];
 
     const { data: student, error: fetchError } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .select('current_streak, max_streak, last_activity_date')
       .eq('id', student_id)
       .single();
@@ -40,10 +40,9 @@ export const updateStreak = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    let { current_streak, max_streak, last_activity_date } = student;
+    let { current_streak = 0, max_streak = 0, last_activity_date } = student;
     
     if (last_activity_date === today) {
-      // Already updated today
       res.json({ success: true, data: student });
       return;
     }
@@ -63,11 +62,12 @@ export const updateStreak = async (req: AuthRequest, res: Response): Promise<voi
     }
 
     const { data, error: updateError } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .update({
         current_streak,
         max_streak,
         last_activity_date: today,
+        updated_at: new Date().toISOString()
       })
       .eq('id', student_id)
       .select()

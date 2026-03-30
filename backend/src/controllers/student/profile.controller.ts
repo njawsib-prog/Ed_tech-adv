@@ -15,10 +15,9 @@ interface AuthRequest extends Request {
 export const getProfile = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
 
     const { data, error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .select(`
         id,
         name,
@@ -28,10 +27,12 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         avatar_url,
         created_at,
         last_login,
-        is_active
+        is_active,
+        branch_id,
+        course_id
       `)
       .eq('id', studentId)
-      .eq('institute_id', instituteId)
+      .eq('role', 'student')
       .single();
 
     if (error) {
@@ -49,7 +50,6 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
     const { name, phone, avatar_url } = req.body;
 
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
@@ -58,10 +58,10 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
 
     const { data, error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .update(updateData)
       .eq('id', studentId)
-      .eq('institute_id', instituteId)
+      .eq('role', 'student')
       .select()
       .single();
 
@@ -83,36 +83,36 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ success: false, error: 'Current and new passwords are required' });
+      return res.status(400).json({ error: 'Current and new passwords are required' });
     }
 
     if (newPassword.length < 8) {
-      return res.status(400).json({ success: false, error: 'New password must be at least 8 characters' });
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
     }
 
     // Get current password hash
     const { data: student, error: fetchError } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .select('password_hash')
       .eq('id', studentId)
       .single();
 
     if (fetchError || !student) {
-      return res.status(404).json({ success: false, error: 'Student not found' });
+      return res.status(404).json({ error: 'Student not found' });
     }
 
     // Verify current password
     const isValid = await bcrypt.compare(currentPassword, student.password_hash);
 
     if (!isValid) {
-      return res.status(401).json({ success: false, error: 'Current password is incorrect' });
+      return res.status(401).json({ error: 'Current password is incorrect' });
     }
 
     // Hash new password
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
 
     const { error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .update({ password_hash: newPasswordHash, updated_at: new Date().toISOString() })
       .eq('id', studentId);
 
@@ -131,15 +131,13 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
 export const getActivity = async (req: AuthRequest, res: Response) => {
   try {
     const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
     const { limit = 20 } = req.query;
 
     const { data, error } = await supabaseAdmin
-      .from('activity_log')
+      .from('notifications')
       .select('*')
-      .eq('user_id', studentId)
-      .eq('user_type', 'student')
-      .eq('institute_id', instituteId)
+      .eq('type', 'audit')
+      .eq('created_by', studentId)
       .order('created_at', { ascending: false })
       .limit(Number(limit));
 
@@ -166,7 +164,7 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
 
     // Verify password
     const { data: student, error: fetchError } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .select('password_hash')
       .eq('id', studentId)
       .single();
@@ -183,8 +181,8 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
 
     // Soft delete by deactivating
     const { error } = await supabaseAdmin
-      .from('students')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .from('users')
+      .update({ status: 'INACTIVE', is_active: false, updated_at: new Date().toISOString() })
       .eq('id', studentId);
 
     if (error) {
@@ -198,48 +196,10 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Get notification preferences
-export const getNotificationPreferences = async (req: AuthRequest, res: Response) => {
-  try {
-    const studentId = req.user?.id;
-    const instituteId = req.user?.instituteId;
-
-    // Default preferences
-    const defaultPrefs = {
-      emailNotifications: true,
-      testReminders: true,
-      resultNotifications: true,
-      announcementNotifications: true
-    };
-
-    // Could be stored in a separate table, returning defaults for now
-    res.json({ success: true, data: defaultPrefs });
-  } catch (error) {
-    console.error('Get notification preferences error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch preferences' });
-  }
-};
-
-// Update notification preferences
-export const updateNotificationPreferences = async (req: AuthRequest, res: Response) => {
-  try {
-    const studentId = req.user?.id;
-    const prefs = req.body;
-
-    // Could store in a separate table, for now just acknowledge
-    res.json({ success: true, message: 'Preferences updated', data: prefs });
-  } catch (error) {
-    console.error('Update notification preferences error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update preferences' });
-  }
-};
-
 export default {
   getProfile,
   updateProfile,
   changePassword,
   getActivity,
   deleteAccount,
-  getNotificationPreferences,
-  updateNotificationPreferences,
 };

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { supabaseAdmin } from '../../db/supabaseAdmin';
 import { AuthRequest } from '../../types';
+import { generateCSV } from '../../utils/csvGenerator';
 
 export const getAuditLogs = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -15,21 +16,34 @@ export const getAuditLogs = async (req: AuthRequest, res: Response): Promise<voi
       end_date
     } = req.query;
 
+    // In the optimized schema, audit logs are in the notifications table
     let query = supabaseAdmin
-      .from('audit_logs')
+      .from('notifications')
       .select(`
-        *,
-        admins (
+        id,
+        title,
+        message,
+        type,
+        action,
+        entity_type,
+        entity_id,
+        old_value,
+        new_value,
+        ip_address,
+        created_at,
+        created_by,
+        users!notifications_created_by_fkey (
           id,
           name,
           email,
           role
         )
-      `, { count: 'exact' });
+      `, { count: 'exact' })
+      .eq('type', 'audit');
 
     // Apply filters
     if (admin_id) {
-      query = query.eq('admin_id', admin_id);
+      query = query.eq('created_by', admin_id);
     }
 
     if (action) {
@@ -86,8 +100,9 @@ export const getAuditStats = async (req: AuthRequest, res: Response): Promise<vo
     const { start_date, end_date } = req.query;
 
     let query = supabaseAdmin
-      .from('audit_logs')
-      .select('action, entity_type, created_at, admin_id');
+      .from('notifications')
+      .select('action, entity_type, created_at, created_by')
+      .eq('type', 'audit');
 
     if (start_date) {
       query = query.gte('created_at', start_date);
@@ -103,7 +118,9 @@ export const getAuditStats = async (req: AuthRequest, res: Response): Promise<vo
 
     // Action breakdown
     const actionBreakdown = logs?.reduce((acc, log) => {
-      acc[log.action] = (acc[log.action] || 0) + 1;
+      if (log.action) {
+        acc[log.action] = (acc[log.action] || 0) + 1;
+      }
       return acc;
     }, {} as Record<string, number>) || {};
 
@@ -116,8 +133,8 @@ export const getAuditStats = async (req: AuthRequest, res: Response): Promise<vo
 
     // Top active admins
     const adminActivity = logs?.reduce((acc, log) => {
-      if (log.admin_id) {
-        acc[log.admin_id] = (acc[log.admin_id] || 0) + 1;
+      if (log.created_by) {
+        acc[log.created_by] = (acc[log.created_by] || 0) + 1;
       }
       return acc;
     }, {} as Record<string, number>) || {};
@@ -126,7 +143,7 @@ export const getAuditStats = async (req: AuthRequest, res: Response): Promise<vo
       .sort(([, a], [, b]) => b - a)
       .slice(0, 10);
 
-    // Daily activity (last 7 days)
+    // Daily activity
     const dailyActivity = logs?.reduce((acc, log) => {
       const date = new Date(log.created_at).toLocaleDateString();
       acc[date] = (acc[date] || 0) + 1;
@@ -154,15 +171,16 @@ export const exportAuditLogs = async (req: AuthRequest, res: Response): Promise<
     const { start_date, end_date, format = 'json' } = req.query;
 
     let query = supabaseAdmin
-      .from('audit_logs')
+      .from('notifications')
       .select(`
         *,
-        admins (
+        users!notifications_created_by_fkey (
           id,
           name,
           email
         )
-      `);
+      `)
+      .eq('type', 'audit');
 
     if (start_date) {
       query = query.gte('created_at', start_date);
@@ -175,29 +193,23 @@ export const exportAuditLogs = async (req: AuthRequest, res: Response): Promise<
     const { data: logs } = await query;
 
     if (format === 'csv') {
-      // Convert to CSV
-      const headers = ['ID', 'Admin Name', 'Admin Email', 'Action', 'Entity Type', 'Entity ID', 'Created At', 'IP Address'];
-      const rows = logs?.map(log => [
-        log.id,
-        log.admins?.name || 'N/A',
-        log.admins?.email || 'N/A',
-        log.action,
-        log.entity_type || 'N/A',
-        log.entity_id || 'N/A',
-        log.created_at,
-        log.ip_address || 'N/A'
-      ]) || [];
+      const exportData = logs?.map(log => ({
+        ID: log.id,
+        Admin_Name: (log as any).users?.name || 'N/A',
+        Admin_Email: (log as any).users?.email || 'N/A',
+        Action: log.action,
+        Entity_Type: log.entity_type || 'N/A',
+        Entity_ID: log.entity_id || 'N/A',
+        Created_At: log.created_at,
+        IP_Address: log.ip_address || 'N/A'
+      })) || [];
 
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-      ].join('\n');
+      const csvContent = generateCSV(exportData);
 
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="audit-logs-${Date.now()}.csv"`);
       res.send(csvContent);
     } else {
-      // Return JSON
       res.json({
         success: true,
         data: logs || []

@@ -10,15 +10,44 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
 
     const { data: students } = await supabaseAdmin
       .from('users')
-      .select('id')
+      .select('id, created_at')
       .eq('role', 'student');
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const studentsThisMonth = students?.filter(s => {
+      const d = new Date(s.created_at);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).length || 0;
+
+    const lastMonth = new Date(now);
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const lastMonthMonth = lastMonth.getMonth();
+    const lastMonthYear = lastMonth.getFullYear();
+
+    const studentsLastMonth = students?.filter(s => {
+      const d = new Date(s.created_at);
+      return d.getMonth() === lastMonthMonth && d.getFullYear() === lastMonthYear;
+    }).length || 0;
+
+    const growthRate = studentsLastMonth > 0 
+      ? ((studentsThisMonth - studentsLastMonth) / studentsLastMonth) * 100 
+      : studentsThisMonth > 0 ? 100 : 0;
 
     const { data: payments } = await supabaseAdmin
       .from('payments')
-      .select('amount, status');
+      .select('amount, status, created_at');
 
     const totalRevenue = payments?.reduce((sum, p) => {
       return p.status === 'completed' ? sum + (p.amount || 0) : sum;
+    }, 0) || 0;
+
+    const revenueThisMonth = payments?.reduce((sum, p) => {
+      const d = new Date(p.created_at);
+      return (p.status === 'completed' && d.getMonth() === currentMonth && d.getFullYear() === currentYear) 
+        ? sum + (p.amount || 0) : sum;
     }, 0) || 0;
 
     const { data: courses } = await supabaseAdmin
@@ -36,7 +65,11 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
       data: {
         totalBranches: branches?.length || 0,
         totalStudents: students?.length || 0,
+        studentsThisMonth,
+        studentsLastMonth,
+        studentGrowthRate: Math.round(growthRate * 100) / 100,
         totalRevenue,
+        revenueThisMonth,
         activeCourses,
         totalCourses: courses?.length || 0,
         totalTests: tests?.length || 0,

@@ -1,58 +1,73 @@
 import { Request, Response } from 'express';
 import { supabaseAdmin } from '../../db/supabaseAdmin';
+import { AuthRequest } from '../../types';
 
 // Get dashboard statistics
-export const getDashboardStats = async (req: Request, res: Response): Promise<void> => {
+export const getDashboardStats = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const branch_id = req.user?.branch_id;
+
     // Get total students count
-    const { count: totalStudents } = await supabaseAdmin
-      .from('students')
+    let studentsQuery = supabaseAdmin
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'student')
+      .eq('is_active', true);
+    
+    if (branch_id) studentsQuery = studentsQuery.eq('branch_id', branch_id);
+    const { count: totalStudents } = await studentsQuery;
+
+    // Get courses
+    let coursesQuery = supabaseAdmin
+      .from('courses')
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true);
+    if (branch_id) coursesQuery = coursesQuery.eq('branch_id', branch_id);
+    const { count: totalCourses } = await coursesQuery;
 
-    // Get active students (logged in today)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Attendance today
+    const today = new Date().toISOString().split('T')[0];
+    let attendanceQuery = supabaseAdmin
+      .from('attendance')
+      .select('status');
+    if (branch_id) attendanceQuery = attendanceQuery.eq('branch_id', branch_id);
+    attendanceQuery = attendanceQuery.eq('date', today);
+    const { data: attendanceData } = await attendanceQuery;
     
-    const { count: activeStudents } = await supabaseAdmin
-      .from('students')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true)
-      .gte('last_login', today.toISOString());
+    const presentToday = attendanceData?.filter(a => a.status === 'present').length || 0;
 
-    // Get tests conducted this week
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
+    // Revenue this month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0,0,0,0);
+    
+    let revenueQuery = supabaseAdmin
+      .from('payments')
+      .select('amount')
+      .eq('status', 'completed')
+      .gte('created_at', startOfMonth.toISOString());
+    if (branch_id) revenueQuery = revenueQuery.eq('branch_id', branch_id);
+    const { data: revenueData } = await revenueQuery;
+    
+    const monthlyRevenue = revenueData?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
 
-    const { count: testsThisWeek } = await supabaseAdmin
-      .from('results')
-      .select('*', { count: 'exact', head: true })
-      .gte('submitted_at', weekAgo.toISOString());
-
-    // Get average score this week - use percentage field
-    const { data: avgScoreData } = await supabaseAdmin
-      .from('results')
-      .select('percentage')
-      .gte('submitted_at', weekAgo.toISOString());
-
-    const avgScore = avgScoreData && avgScoreData.length > 0
-      ? avgScoreData.reduce((sum, r) => sum + (r.percentage || 0), 0) / avgScoreData.length
-      : 0;
-
-    // Get recent activity
-    const { data: recentActivity } = await supabaseAdmin
-      .from('activity_log')
+    // Recent activity (from notifications table where type=audit)
+    let activityQuery = supabaseAdmin
+      .from('notifications')
       .select('*')
+      .eq('type', 'audit')
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(10);
+    // Note: audit logs might not have branch_id directly, but we can filter by user's branch if stored in entity or created_by
+    const { data: recentActivity } = await activityQuery;
 
     res.json({
       success: true,
       data: {
         totalStudents: totalStudents || 0,
-        activeStudents: activeStudents || 0,
-        testsThisWeek: testsThisWeek || 0,
-        avgScore: Math.round(avgScore * 10) / 10,
+        totalCourses: totalCourses || 0,
+        presentToday,
+        monthlyRevenue,
         recentActivity: recentActivity || [],
       },
     });

@@ -9,6 +9,7 @@ interface StudentRequest extends Request {
     email: string;
     password: string;
     course_id: string;
+    branch_id?: string;
   };
   user?: {
     id: string;
@@ -30,9 +31,11 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
     const { search, course_id, branch_id, status, page = 1, limit = 20 } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
+    // Use users table directly
     let query = supabaseAdmin
-      .from('students')
-      .select('id, name, email, course_id, branch_id, status, is_active, created_at, last_login, courses(name), branches(name)', { count: 'exact' });
+      .from('users')
+      .select('id, name, email, course_id, branch_id, status, is_active, created_at, last_login, roll_number, courses(name), branches(name)', { count: 'exact' })
+      .eq('role', 'student');
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -46,12 +49,8 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
       query = query.eq('branch_id', branch_id);
     }
 
-    if (status === 'active' || status === 'ACTIVE') {
-      query = query.eq('status', 'ACTIVE');
-    } else if (status === 'inactive' || status === 'INACTIVE') {
-      query = query.eq('status', 'INACTIVE');
-    } else if (status === 'suspended' || status === 'SUSPENDED') {
-      query = query.eq('status', 'SUSPENDED');
+    if (status) {
+      query = query.eq('status', (status as string).toUpperCase());
     }
 
     const { data, error, count } = await query
@@ -81,16 +80,16 @@ export const getStudents = async (req: Request, res: Response): Promise<void> =>
 // Create a new student
 export const createStudent = async (req: StudentRequest, res: Response): Promise<void> => {
   try {
-    const { name, email, password, course_id, branch_id } = req.body as any;
+    const { name, email, password, course_id, branch_id } = req.body;
 
-    if (!name || !email || !password || !course_id) {
-      res.status(400).json({ success: false, error: 'All fields are required' });
+    if (!name || !email || !password) {
+      res.status(400).json({ success: false, error: 'Name, email and password are required' });
       return;
     }
 
     // Check if email already exists
     const { data: existing } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .select('id')
       .eq('email', email)
       .single();
@@ -104,13 +103,14 @@ export const createStudent = async (req: StudentRequest, res: Response): Promise
     const passwordHash = await bcrypt.hash(password, 12);
 
     const { data, error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .insert({
         name,
         email,
         password_hash: passwordHash,
         course_id,
         branch_id,
+        role: 'student',
         is_active: true,
         status: 'ACTIVE',
       })
@@ -138,160 +138,43 @@ export const bulkUploadStudents = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    const results: { 
-      success: any[]; 
-      errors: { row: number; error: string; data?: any }[];
-      summary: {
-        totalProcessed: number;
-        successful: number;
-        failed: number;
-        skipped: number;
-      }
-    } = {
-      success: [],
-      errors: [],
-      summary: {
-        totalProcessed: 0,
-        successful: 0,
-        failed: 0,
-        skipped: 0,
-      }
-    };
-
     const csvContent = file.buffer.toString('utf-8');
     const rows = parseCSV(csvContent);
 
-    // Validate CSV structure using utility
-    const validation = validateCSVStructure(rows, 4);
-    if (!validation.isValid) {
-      res.status(400).json({ success: false, error: validation.error });
-      return;
-    }
-
-    // Log header for debugging
-    const headerRow = rows[0];
-    console.log(`[BulkUpload] Processing CSV with headers: ${headerRow.join(', ')}`);
-
-    // Prepare students data for batch upsert
-    const validStudents: Array<{
-      name: string;
-      email: string;
-      password_hash: string;
-      course_id: string;
-      is_active: boolean;
-    }> = [];
-    const invalidRows: Array<{ rowNumber: number; error: string; data: string[] }> = [];
-
     // Process data rows (skip header)
+    const validStudents = [];
     for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      results.summary.totalProcessed++;
-
-      // Skip empty rows
-      if (row.length === 0 || row.every(field => !field.trim())) {
-        results.summary.skipped++;
-        continue;
+      const [name, email, password, course_id, branch_id] = rows[i];
+      if (name && email && password) {
+        const passwordHash = await bcrypt.hash(password, 12);
+        validStudents.push({
+          name,
+          email: email.toLowerCase(),
+          password_hash: passwordHash,
+          role: 'student',
+          course_id,
+          branch_id,
+          status: 'ACTIVE',
+          is_active: true
+        });
       }
-
-      const [name, email, password, course_id] = row;
-
-      // Validate required fields
-      if (!name || !email || !password || !course_id) {
-        invalidRows.push({ rowNumber: i + 1, error: 'Missing required fields (name, email, password, course_id)', data: row });
-        results.summary.failed++;
-        continue;
-      }
-
-      // Validate email format
-      if (!isValidEmail(email)) {
-        invalidRows.push({ rowNumber: i + 1, error: `Invalid email format: ${email}`, data: row });
-        results.summary.failed++;
-        continue;
-      }
-
-      // Validate password length
-      if (password.length < 6) {
-        invalidRows.push({ rowNumber: i + 1, error: 'Password must be at least 6 characters', data: row });
-        results.summary.failed++;
-        continue;
-      }
-
-      // Validate course_id format (UUID)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(course_id)) {
-        invalidRows.push({ rowNumber: i + 1, error: `Invalid course_id format: ${course_id}`, data: row });
-        results.summary.failed++;
-        continue;
-      }
-
-      // Hash password
-      const passwordHash = await bcrypt.hash(password, 12);
-
-      validStudents.push({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password_hash: passwordHash,
-        course_id: course_id.trim(),
-        is_active: true,
-      });
     }
 
-    // Batch upsert all valid students
     if (validStudents.length > 0) {
-      // Process in batches of 100 to avoid hitting size limits
-      const batchSize = 100;
-      for (let i = 0; i < validStudents.length; i += batchSize) {
-        const batch = validStudents.slice(i, i + batchSize);
-        const batchNumber = Math.floor(i / batchSize) + 1;
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .upsert(validStudents, { onConflict: 'email' })
+        .select('id, name, email');
 
-        try {
-          const { data, error } = await supabaseAdmin
-            .from('students')
-            .upsert(batch, { onConflict: 'email' })
-            .select('id, name, email');
-
-          if (error) {
-            console.error(`[BulkUpload] Batch ${batchNumber} failed:`, error.message);
-            // Mark all rows in this batch as errors
-            batch.forEach((student, idx) => {
-              const originalRowNumber = rows.findIndex(row => row[1] === student.email) + 1;
-              invalidRows.push({
-                rowNumber: originalRowNumber || i + idx + 2,
-                error: `Database error: ${error.message}`,
-                data: [student.name, student.email, '***', student.course_id],
-              });
-              results.summary.failed++;
-            });
-          } else {
-            results.success.push(...(data || []));
-            results.summary.successful += (data || []).length;
-          }
-        } catch (batchError: any) {
-          console.error(`[BulkUpload] Batch ${batchNumber} exception:`, batchError);
-          batch.forEach((student, idx) => {
-            invalidRows.push({
-              rowNumber: i + idx + 2,
-              error: `Processing error: ${batchError.message}`,
-              data: [student.name, student.email, '***', student.course_id],
-            });
-            results.summary.failed++;
-          });
-        }
+      if (error) {
+        res.status(400).json({ success: false, error: error.message });
+        return;
       }
+
+      res.json({ success: true, message: `Successfully uploaded ${data?.length} students` });
+    } else {
+      res.status(400).json({ success: false, error: 'No valid student data found in CSV' });
     }
-
-    // Add invalid row errors to results
-    invalidRows.forEach(({ rowNumber, error, data }) => {
-      results.errors.push({ row: rowNumber, error, data });
-    });
-
-    console.log(`[BulkUpload] Completed: ${results.summary.successful} successful, ${results.summary.failed} errors, ${results.summary.skipped} skipped`);
-
-    res.json({ 
-      success: true, 
-      data: results,
-      message: `Processed ${results.summary.totalProcessed} rows: ${results.summary.successful} successful, ${results.summary.failed} failed, ${results.summary.skipped} skipped`
-    });
   } catch (error: any) {
     console.error('Bulk upload error:', error);
     res.status(500).json({ success: false, error: `Internal server error: ${error.message}` });
@@ -302,35 +185,22 @@ export const bulkUploadStudents = async (req: Request, res: Response): Promise<v
 export const updateStudent = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, email, course_id, branch_id, status, is_active, password } = req.body;
+    const updates = req.body;
 
-    const updateData: Record<string, unknown> = {};
-    if (name) updateData.name = name;
-    if (email) updateData.email = email;
-    if (course_id) updateData.course_id = course_id;
-    if (branch_id !== undefined) updateData.branch_id = branch_id;
-
-    // Support new 'status' field (ACTIVE / INACTIVE / SUSPENDED)
-    if (status && ['ACTIVE', 'INACTIVE', 'SUSPENDED'].includes(status as string)) {
-      updateData.status = status;
-      updateData.is_active = status === 'ACTIVE';
-    } else if (typeof is_active === 'boolean') {
-      updateData.is_active = is_active;
-      updateData.status = is_active ? 'ACTIVE' : 'INACTIVE';
+    if (updates.password) {
+      updates.password_hash = await bcrypt.hash(updates.password, 12);
+      delete updates.password;
     }
-
-    // Optional password reset
-    if (password && typeof password === 'string' && password.trim().length >= 6) {
-      updateData.password_hash = await bcrypt.hash(password.trim(), 12);
-    }
-
-    updateData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabaseAdmin
-      .from('students')
-      .update(updateData)
+      .from('users')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
-      .select('id, name, email, course_id, branch_id, status, is_active')
+      .eq('role', 'student')
+      .select()
       .single();
 
     if (error) {
@@ -351,9 +221,10 @@ export const getStudentById = async (req: Request, res: Response): Promise<void>
     const { id } = req.params;
 
     const { data, error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .select('id, name, email, course_id, branch_id, status, is_active, created_at, last_login, roll_number, courses(id, name), branches(id, name)')
       .eq('id', id)
+      .eq('role', 'student')
       .single();
 
     if (error || !data) {
@@ -373,11 +244,11 @@ export const deleteStudent = async (req: Request, res: Response): Promise<void> 
   try {
     const { id } = req.params;
 
-    // Soft delete - set status to INACTIVE and is_active to false
     const { error } = await supabaseAdmin
-      .from('students')
+      .from('users')
       .update({ status: 'INACTIVE', is_active: false, updated_at: new Date().toISOString() })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('role', 'student');
 
     if (error) {
       res.status(400).json({ success: false, error: error.message });

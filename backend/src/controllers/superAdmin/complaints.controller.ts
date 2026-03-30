@@ -13,43 +13,35 @@ export const getAllComplaints = async (req: AuthRequest, res: Response): Promise
       priority
     } = req.query;
 
+    // In optimized schema, complaints are in notifications table
     let query = supabaseAdmin
-      .from('complaints')
+      .from('notifications')
       .select(`
         *,
-        students!inner (
+        users!notifications_student_id_fkey (
           id,
           name,
           email,
-          branch_id
-        ),
-        branches (
-          id,
-          name
-        ),
-        complaint_replies (
-          id,
-          message,
-          replied_by,
-          created_at
+          branch_id,
+          branches (
+            id,
+            name
+          )
         )
-      `, { count: 'exact' });
+      `, { count: 'exact' })
+      .eq('type', 'complaint');
 
     // Apply filters
-    if (branch_id) {
-      query = query.eq('branch_id', branch_id);
-    }
-
     if (status) {
-      query = query.eq('status', status);
+      query = query.eq('complaint_status', status);
     }
 
     if (priority) {
-      query = query.eq('priority', priority);
+      query = query.eq('priority_level', priority);
     }
 
     if (search) {
-      query = query.or(`subject.ilike.%${search}%,message.ilike.%${search}%,students.name.ilike.%${search}%`);
+      query = query.or(`title.ilike.%${search}%,message.ilike.%${search}%`);
     }
 
     const from = ((parseInt(page as string) - 1) * parseInt(limit as string));
@@ -65,9 +57,15 @@ export const getAllComplaints = async (req: AuthRequest, res: Response): Promise
       return;
     }
 
+    // Filter by branch manually if needed since it's nested or not directly on notification
+    let filteredData = data || [];
+    if (branch_id) {
+      filteredData = filteredData.filter(c => (c as any).users?.branch_id === branch_id);
+    }
+
     res.json({
       success: true,
-      data: data || [],
+      data: filteredData,
       pagination: {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
@@ -86,32 +84,23 @@ export const getComplaintById = async (req: AuthRequest, res: Response): Promise
     const { id } = req.params;
 
     const { data: complaint, error } = await supabaseAdmin
-      .from('complaints')
+      .from('notifications')
       .select(`
         *,
-        students!inner (
+        users!notifications_student_id_fkey (
           id,
           name,
           email,
           phone,
-          branch_id
-        ),
-        branches (
-          id,
-          name,
-          location,
-          contact_number
-        ),
-        complaint_replies (
-          *,
-          admins (
+          branch_id,
+          branches (
             id,
-            name,
-            role
+            name
           )
         )
       `)
       .eq('id', id)
+      .eq('type', 'complaint')
       .single();
 
     if (error || !complaint) {
@@ -137,14 +126,13 @@ export const resolveComplaint = async (req: AuthRequest, res: Response): Promise
     const adminId = req.user?.id;
 
     const { data: complaint, error } = await supabaseAdmin
-      .from('complaints')
+      .from('notifications')
       .update({
-        status: 'resolved',
-        resolution_notes,
-        resolved_at: new Date().toISOString(),
-        resolved_by: adminId
+        complaint_status: 'resolved',
+        new_value: { resolution_notes, resolved_at: new Date().toISOString(), resolved_by: adminId }
       })
       .eq('id', id)
+      .eq('type', 'complaint')
       .select()
       .single();
 
@@ -173,14 +161,13 @@ export const overrideBranchAdmin = async (req: AuthRequest, res: Response): Prom
     const adminId = req.user?.id;
 
     const { data: complaint, error } = await supabaseAdmin
-      .from('complaints')
+      .from('notifications')
       .update({
-        status,
-        override_notes: notes,
-        override_by: adminId,
-        override_at: new Date().toISOString()
+        complaint_status: status,
+        new_value: { override_notes: notes, override_by: adminId, override_at: new Date().toISOString() }
       })
       .eq('id', id)
+      .eq('type', 'complaint')
       .select()
       .single();
 
@@ -203,34 +190,15 @@ export const overrideBranchAdmin = async (req: AuthRequest, res: Response): Prom
 
 export const getComplaintStats = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { branch_id } = req.query;
-
-    let query = supabaseAdmin
-      .from('complaints')
-      .select('status, priority, branch_id, created_at');
-
-    if (branch_id) {
-      query = query.eq('branch_id', branch_id);
-    }
-
-    const { data: complaints } = await query;
+    const { data: complaints } = await supabaseAdmin
+      .from('notifications')
+      .select('complaint_status, priority_level, student_id')
+      .eq('type', 'complaint');
 
     const total = complaints?.length || 0;
-    const open = complaints?.filter(c => c.status === 'open').length || 0;
-    const inProgress = complaints?.filter(c => c.status === 'in_progress').length || 0;
-    const resolved = complaints?.filter(c => c.status === 'resolved').length || 0;
-
-    // Priority breakdown
-    const highPriority = complaints?.filter(c => c.priority === 'high').length || 0;
-    const mediumPriority = complaints?.filter(c => c.priority === 'medium').length || 0;
-    const lowPriority = complaints?.filter(c => c.priority === 'low').length || 0;
-
-    // Branch breakdown
-    const branchBreakdown = complaints?.reduce((acc, c) => {
-      const branchId = c.branch_id || 'unassigned';
-      acc[branchId] = (acc[branchId] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {};
+    const open = complaints?.filter(c => c.complaint_status === 'open').length || 0;
+    const inProgress = complaints?.filter(c => c.complaint_status === 'in_progress').length || 0;
+    const resolved = complaints?.filter(c => c.complaint_status === 'resolved').length || 0;
 
     res.json({
       success: true,
@@ -238,11 +206,7 @@ export const getComplaintStats = async (req: AuthRequest, res: Response): Promis
         total,
         open,
         inProgress,
-        resolved,
-        highPriority,
-        mediumPriority,
-        lowPriority,
-        branchBreakdown
+        resolved
       }
     });
   } catch (error) {
