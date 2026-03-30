@@ -211,7 +211,7 @@ export default function StudentsPage() {
         <StatCard title="Total Students" value={students.length} icon="students" color="blue" />
         <StatCard title="Active" value={activeCount} icon="students" color="green" />
         <StatCard title="Suspended" value={suspendedCount} icon="students" color="orange" />
-        <StatCard title="Inactive" value={students.filter(s => s.status === 'INACTIVE').length} icon="students" color="purple" />
+        <StatCard title="Inactive" value={students.filter(s => s.status !== 'ACTIVE' && s.status !== 'SUSPENDED').length} icon="students" color="purple" />
       </div>
 
       <div className="flex flex-wrap gap-4">

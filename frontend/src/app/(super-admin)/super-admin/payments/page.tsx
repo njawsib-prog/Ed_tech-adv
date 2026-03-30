@@ -142,7 +142,7 @@ export default function PaymentsPage() {
       key: 'amount',
       header: 'Amount',
       render: (row: Payment) => (
-        <span className="font-semibold">{row.currency || '₹'}{Number(row.amount).toLocaleString()}</span>
+        <span className="font-semibold">${Number(row.amount).toLocaleString()}</span>
       ),
     },
     {
@@ -190,7 +190,7 @@ export default function PaymentsPage() {
       key: 'pending_amount',
       header: 'Pending Amount',
       render: (row: Defaulter) => (
-        <span className="font-semibold text-red-600">₹{Number(row.pending_amount).toLocaleString()}</span>
+        <span className="font-semibold text-red-600">${Number(row.pending_amount).toLocaleString()}</span>
       ),
     },
     {
@@ -216,8 +216,8 @@ export default function PaymentsPage() {
 
       {analytics && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Revenue" value={`₹${Number(analytics.total_revenue).toLocaleString()}`} icon="payments" color="green" />
-          <StatCard title="Pending Amount" value={`₹${Number(analytics.pending_amount).toLocaleString()}`} icon="payments" color="orange" />
+          <StatCard title="Total Revenue" value={`$${Number(analytics.total_revenue).toLocaleString()}`} icon="payments" color="green" />
+          <StatCard title="Pending Amount" value={`$${Number(analytics.pending_amount).toLocaleString()}`} icon="payments" color="orange" />
           <StatCard title="Completed Payments" value={analytics.completed_count} icon="payments" color="blue" />
           <StatCard title="Defaulters" value={analytics.defaulter_count} icon="students" color="pink" />
         </div>

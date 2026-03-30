@@ -68,7 +68,7 @@ export default function NotificationsPage() {
     try {
       const payload: Record<string, any> = { ...formData };
       if (!payload.scheduled_at) delete payload.scheduled_at;
-      if (payload.target_type !== 'branches') delete payload.branch_id;
+      if (payload.target_type !== 'branches' || !payload.branch_id) delete payload.branch_id;
       const res = await apiClient.post('/api/super-admin/notifications', payload);
       if (res.data.success) {
         setIsModalOpen(false);
