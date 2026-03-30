@@ -36,11 +36,11 @@ export default function SuperAdminDashboard() {
         apiClient.get('/api/super-admin/dashboard/top-branches'),
       ]);
 
-      if (statsRes.success) setStats(statsRes.data);
-      if (growthRes.success) setStudentGrowth(growthRes.data);
-      if (revenueRes.success) setRevenueData(revenueRes.data);
-      if (attendanceRes.success) setAttendanceData(attendanceRes.data);
-      if (branchesRes.success) setTopBranches(branchesRes.data);
+      if (statsRes.data.success) setStats(statsRes.data.data);
+      if (growthRes.data.success) setStudentGrowth(growthRes.data.data);
+      if (revenueRes.data.success) setRevenueData(revenueRes.data.data);
+      if (attendanceRes.data.success) setAttendanceData(attendanceRes.data.data);
+      if (branchesRes.data.success) setTopBranches(branchesRes.data.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

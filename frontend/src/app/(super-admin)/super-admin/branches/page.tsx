@@ -36,8 +36,8 @@ export default function BranchesPage() {
   const fetchBranches = async () => {
     try {
       const res = await apiClient.get('/api/super-admin/branches');
-      if (res.success) {
-        setBranches(res.data);
+      if (res.data.success) {
+        setBranches(res.data.data);
       }
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -49,9 +49,9 @@ export default function BranchesPage() {
   const handleToggleStatus = async (id: string) => {
     try {
       const res = await apiClient.put(`/api/super-admin/branches/${id}/toggle-status`);
-      if (res.success) {
+      if (res.data.success) {
         setBranches(branches.map(b =>
-          b.id === id ? { ...b, is_active: res.data.is_active } : b
+          b.id === id ? { ...b, is_active: res.data.data.is_active } : b
         ));
       }
     } catch (error) {
@@ -64,7 +64,7 @@ export default function BranchesPage() {
 
     try {
       const res = await apiClient.delete(`/api/super-admin/branches/${id}`);
-      if (res.success) {
+      if (res.data.success) {
         setBranches(branches.filter(b => b.id !== id));
       }
     } catch (error) {
@@ -82,7 +82,7 @@ export default function BranchesPage() {
       const method = selectedBranch ? 'put' : 'post';
 
       const res = await apiClient[method](endpoint, formData);
-      if (res.success) {
+      if (res.data.success) {
         fetchBranches();
         setIsModalOpen(false);
         setSelectedBranch(null);
